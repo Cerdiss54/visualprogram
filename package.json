@@ -6,7 +6,11 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -21,6 +25,9 @@
   },
   "homepage": "https://github.com/Cerdiss54/visualprogram#readme",
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@types/node": "^25.5.0",
+    "@vitest/ui": "^4.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   }
 }

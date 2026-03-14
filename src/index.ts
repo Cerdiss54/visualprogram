@@ -1,34 +1,16 @@
-interface User {
-    id: number;
-    name: string;
-    email?: string;
-    isActive: boolean;
-}
+import { createUser } from './functions/user';
+import { createBook } from './functions/book';
+import { calculateArea } from './functions/area';
+import { getStatusColor } from './functions/status';
+import { capitalizeFirst, trimAndTransform } from './functions/formatter';
+import { getFirstElement } from './functions/array';
+import { findById } from './functions/findById';
 
-function createUser(id: number, name: string, isActive: boolean = true, email?: string): User {
-    return {
-        id,
-        name,
-        email,
-        isActive
-    };
-}
-
+console.log('=== Демонстрация функций ===\n');
 
 const user1 = createUser(1, "Иван Иванов");
 const user2 = createUser(2, "Мария Петрова", true, "maria@example.com");
-console.log(user1, user2);
-
-interface Book {
-    title: string;
-    author: string;
-    year?: number;
-    genre: 'fiction' | 'non-fiction';
-}
-
-function createBook(book: Book): Book {
-    return book;
-}
+console.log('Users:', user1, user2);
 
 const book1 = createBook({
     title: "Война и мир",
@@ -36,85 +18,35 @@ const book1 = createBook({
     year: 1869,
     genre: "fiction"
 });
-
 const book2 = createBook({
     title: "Краткая история времени",
     author: "Стивен Хокинг",
     genre: "non-fiction"
 });
+console.log('Books:', book1, book2);
 
-console.log(book1, book2);
+console.log('Circle area (radius 5):', calculateArea('circle', 5));
+console.log('Square area (side 4):', calculateArea('square', 4));
 
-function calculateArea(shape: 'circle', radius: number): number;
-function calculateArea(shape: 'square', side: number): number;
-function calculateArea(shape: 'circle' | 'square', param: number): number {
-    if (shape === 'circle') {
-        return Math.PI * param * param;
-    } else {
-        return param * param;
-    }
-}
+console.log('Status colors:', 
+    getStatusColor('active'), 
+    getStatusColor('inactive'), 
+    getStatusColor('new')
+);
 
-console.log(calculateArea('circle', 5)); 
-console.log(calculateArea('square', 4)); 
-
-type Status = 'active' | 'inactive' | 'new';
-
-function getStatusColor(status: Status): string {
-    switch(status) {
-        case 'active':
-            return 'green';
-        case 'inactive':
-            return 'gray';
-        case 'new':
-            return 'blue';
-        default:
-            const exhaustiveCheck: never = status;
-            return exhaustiveCheck;
-    }
-}
-
-console.log(getStatusColor('active'));   
-console.log(getStatusColor('inactive')); 
-console.log(getStatusColor('new'));     
-
-type StringFormatter = (str: string, uppercase?: boolean) => string;
-
-const capitalizeFirst: StringFormatter = (str: string): string => {
-    if (str.length === 0) return str;
-    return str.charAt(0).toUpperCase() + str.slice(1);
-};
-
-const trimAndTransform: StringFormatter = (str: string, uppercase: boolean = false): string => {
-    const trimmed = str.trim();
-    return uppercase ? trimmed.toUpperCase() : trimmed;
-};
-
-console.log(capitalizeFirst("hello world"));        
-console.log(trimAndTransform("  hello world  "));   
-console.log(trimAndTransform("  hello world  ", true));
-
-function getFirstElement<T>(arr: T[]): T | undefined {
-    return arr.length > 0 ? arr[0] : undefined;
-}
+console.log('Capitalize:', capitalizeFirst("hello world"));
+console.log('Trim:', trimAndTransform("  hello world  "));
+console.log('Trim and uppercase:', trimAndTransform("  hello world  ", true));
 
 const numbersArray: number[] = [10, 20, 30, 40];
 const stringsArray: string[] = ["a", "b", "c"];
 const emptyArray: any[] = [];
+console.log('First element (numbers):', getFirstElement(numbersArray));
+console.log('First element (strings):', getFirstElement(stringsArray));
+console.log('First element (empty):', getFirstElement(emptyArray));
 
-console.log(getFirstElement(numbersArray)); 
-console.log(getFirstElement(stringsArray)); 
-console.log(getFirstElement(emptyArray));   
-
-interface HasId {
+interface Person {
     id: number;
-}
-
-function findById<T extends HasId>(items: T[], id: number): T | undefined {
-    return items.find(item => item.id === id);
-}
-
-interface Person extends HasId {
     name: string;
 }
 
@@ -124,7 +56,8 @@ const people: Person[] = [
     { id: 3, name: "Петр" }
 ];
 
-interface Product extends HasId {
+interface Product {
+    id: number;
     title: string;
     price: number;
 }
@@ -135,6 +68,6 @@ const products: Product[] = [
     { id: 103, title: "Клавиатура", price: 75 }
 ];
 
-console.log(findById(people, 2));    
-console.log(findById(people, 5));    
-console.log(findById(products, 103)); 
+console.log('Find person by id 2:', findById(people, 2));
+console.log('Find person by id 5:', findById(people, 5));
+console.log('Find product by id 103:', findById(products, 103));
