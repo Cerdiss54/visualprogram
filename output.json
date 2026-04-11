@@ -1,0 +1,11 @@
+[
+  {
+    "name,age,city": "Dmitriy,20,Novosibirsk"
+  },
+  {
+    "name,age,city": "Nataliya,22,Leningrad"
+  },
+  {
+    "name,age,city": "Alexander,15,Moscow"
+  }
+]

@@ -1,33 +1,19 @@
 {
-  "name": "visualprogram",
+  "name": "tc_term3",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Лабораторные работы по Теории компиляторов",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsc --watch",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "build": "tsc src/*.ts --outDir ./dist",
+    "start": "node src/lab3.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Cerdiss54/visualprogram.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Cerdiss54/visualprogram/issues"
-  },
-  "homepage": "https://github.com/Cerdiss54/visualprogram#readme",
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "@vitest/ui": "^4.1.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
-  }
+    "@types/node": "^18.19.0",
+    "typescript": "^5.0.0",
+    "vitest": "^0.34.6"
+  },
+  "author": "",
+  "license": "ISC"
 }
