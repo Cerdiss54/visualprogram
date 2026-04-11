@@ -7,10 +7,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "build": "tsc src/*.ts --outDir ./dist",
-    "start": "node src/lab3.js"
+    "start": "node src/lab4.js"
   },
   "devDependencies": {
-    "@types/node": "^18.19.0",
+    "@types/node": "^18.19.130",
     "typescript": "^5.0.0",
     "vitest": "^0.34.6"
   },

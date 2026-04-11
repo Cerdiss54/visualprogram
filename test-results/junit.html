@@ -1,53 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="17" failures="0" errors="0" time="0.0229006">
-    <testsuite name="tests/csvToJson_test.ts" timestamp="2026-04-11T07:32:26.352Z" hostname="DESKTOP-8DTECG0" tests="13" failures="0" errors="0" skipped="0" time="0.0118055">
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; корректные входные данные &gt; должен преобразовывать CSV в массив объектов с числами" time="0.0031609">
+<testsuites name="vitest tests" tests="9" failures="0" errors="0" time="0.532">
+    <testsuite name="tests/lab4_test.ts" timestamp="2026-04-11T07:40:53.981Z" hostname="DESKTOP-8DTECG0" tests="9" failures="0" errors="0" skipped="0" time="0.004">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; where filter by name" time="0.001">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; корректные входные данные &gt; должен работать с разными разделителями" time="0.0004504">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; where filter by city" time="0.001">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; корректные входные данные &gt; должен обрабатывать смешанные типы данных" time="0.0003186">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; where filter by age" time="0">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; корректные входные данные &gt; должен обрезать пробелы в заголовках и значениях" time="0.0003397">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; sort by age" time="0">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; корректные входные данные &gt; должен сохранять строки, которые не преобразуются в числа" time="0.0002573">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; group by city" time="0.001">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; корректные входные данные &gt; должен работать с несколькими строками данных" time="0.000265">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; having filter groups" time="0">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен выбрасывать ошибку при пустом входном массиве" time="0.0013372">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; query example 1 - filter and sort" time="0">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен выбрасывать ошибку при отсутствии строк с данными" time="0.00033">
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; query example 2 - group and having" time="0">
         </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен выбрасывать ошибку при неверных заголовках" time="0.0005921">
-        </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен выбрасывать ошибку при несовпадении количества параметров" time="0.0008192">
-        </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен выбрасывать ошибку при пустых значениях в данных" time="0.0006352">
-        </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен обрабатывать специальные символы в данных" time="0.0001828">
-        </testcase>
-        <testcase classname="tests/csvToJson_test.ts" name="csvToJSON &gt; некорректные входные данные &gt; должен правильно обрабатывать числа с ведущими нулями" time="0.0002633">
-        </testcase>
-    </testsuite>
-    <testsuite name="tests/formatCSVFileToJSONFile_test.ts" timestamp="2026-04-11T07:32:26.360Z" hostname="DESKTOP-8DTECG0" tests="4" failures="0" errors="0" skipped="0" time="0.0110951">
-        <testcase classname="tests/formatCSVFileToJSONFile_test.ts" name="formatCSVFileToJSONFile с ручными заглушками &gt; должен вызвать readFile и writeFile с правильными параметрами" time="0.0059128">
-            <system-out>
-Файл успешно преобразован и сохранен в ../code/output.json
-
-            </system-out>
-        </testcase>
-        <testcase classname="tests/formatCSVFileToJSONFile_test.ts" name="formatCSVFileToJSONFile с ручными заглушками &gt; должен работать с реальными данными из ../code/data.csv (все 3 строки)" time="0.0009762">
-            <system-out>
-Файл успешно преобразован и сохранен в ../code/output.json
-
-            </system-out>
-        </testcase>
-        <testcase classname="tests/formatCSVFileToJSONFile_test.ts" name="formatCSVFileToJSONFile с ручными заглушками &gt; должен вызывать writeFile ТОЛЬКО после успешного readFile" time="0.000737">
-        </testcase>
-        <testcase classname="tests/formatCSVFileToJSONFile_test.ts" name="formatCSVFileToJSONFile с ручными заглушками &gt; должен правильно определять типы данных (числа/строки)" time="0.0006956">
-            <system-out>
-Файл успешно преобразован и сохранен в ../code/output.json
-
-            </system-out>
+        <testcase classname="tests/lab4_test.ts" name="lab4 &gt; query example 3 - combined" time="0">
         </testcase>
     </testsuite>
 </testsuites>
