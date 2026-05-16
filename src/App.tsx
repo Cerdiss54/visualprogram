@@ -20,7 +20,6 @@ function App() {
                     throw new Error('Ожидался массив книг, но API вернул данные в другом формате.');
                 }
                 
-                // Ограничиваем список до 12 книг, чтобы не "повесить" браузер тысячами запросов
                 booksData = booksData.slice(0, 12);
                 setBooks(booksData);
                 

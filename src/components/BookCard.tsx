@@ -8,7 +8,6 @@ interface BookCardProps {
 }
 
 const BookCard: React.FC<BookCardProps> = ({ title, authors, coverImage }) => {
-    // Добавляем состояние, которое будет отслеживать ошибку загрузки картинки
     const [hasError, setHasError] = useState(false);
 
     return (
