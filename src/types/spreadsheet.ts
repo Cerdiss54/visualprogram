@@ -17,3 +17,13 @@ export interface SelectedRange {
     start: CellCoords;
     end: CellCoords;
 }
+
+export interface DocumentItem {
+    id: string;
+    title: string;
+    rows: number;
+    cols: number;
+    createdAt: string;
+    updatedAt: string;
+    matrixData: SpreadsheetData;
+}
