@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createEmptyData } from '@/functions/tableRendering';
 import { recalculateTable } from '@/functions/formulaParser';
 import { CellCoords, SelectedRange, SpreadsheetData } from '@/types/spreadsheet';
+import { useTableEditor } from '@/functions/tableEditor';
 import '@/App.css';
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -42,6 +43,15 @@ export default function App() {
   const [lastClickedCell, setLastClickedCell] = useState<string | null>(null);
   
   const editInputRef = useRef<HTMLInputElement>(null);
+  const {
+    contextMenu,
+    handleAddRow,
+    handleDeleteRow,
+    handleAddColumn,
+    handleDeleteColumn,
+    openContextMenu,
+    closeContextMenu,
+  } = useTableEditor(matrixData, setMatrixData, COLS, ROWS, alphabet);
 
   const handleSave = useCallback((cellId: string, value: string) => {
     setMatrixData((prev) => {
@@ -95,15 +105,19 @@ export default function App() {
   }, [lastClickedCell]);
 
   useEffect(() => {
+    if (contextMenu) {
+      document.addEventListener('click', closeContextMenu);
+      return () => document.removeEventListener('click', closeContextMenu);
+    }
+  }, [contextMenu, closeContextMenu]);
+
+  useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (editingCellId) return;
 
       if ((e.key === 'Enter') && activeCellId) {
         e.preventDefault();
-        setMatrixData((prev) => {
-          startEditing(activeCellId, prev[activeCellId]?.entValue || '');
-          return prev;
-        });
+        startEditing(activeCellId, matrixData[activeCellId]?.entValue || '');
         return;
       }
 
@@ -132,7 +146,7 @@ export default function App() {
     
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [activeCellId, editingCellId, startEditing]);
+  }, [activeCellId, editingCellId, startEditing, matrixData]);
 
   useEffect(() => {
     if (editingCellId && editInputRef.current) {
@@ -164,8 +178,12 @@ export default function App() {
           <thead>
             <tr>
               <th className="sticky-corner"></th>
-              {alphabet.slice(0, COLS).map((letter) => (
-                <th key={letter} className="sticky-col-header">
+              {alphabet.slice(0, COLS).map((letter, colIdx) => (
+                <th 
+                  key={letter} 
+                  className="sticky-col-header"
+                  onContextMenu={(e) => openContextMenu(e, 'column', colIdx)}
+                >
                   {letter}
                 </th>
               ))}
@@ -177,7 +195,12 @@ export default function App() {
 
               return (
                 <tr key={rowNum}>
-                  <td className="sticky-row-header">{rowNum}</td>
+                  <td 
+                    className="sticky-row-header"
+                    onContextMenu={(e) => openContextMenu(e, 'row', rIdx)}
+                  >
+                    {rowNum}
+                  </td>
                   {alphabet.slice(0, COLS).map((letter) => {
                     const cellId = `${letter}${rowNum}`;
                     const cell = matrixData[cellId];
@@ -219,6 +242,63 @@ export default function App() {
           </tbody>
         </table>
       </div>
+
+      {contextMenu?.visible && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            background: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+            zIndex: 1000,
+            minWidth: '200px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.type === 'row' ? (
+            <>
+              <div 
+                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+                onClick={() => handleAddRow(contextMenu.index)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+              >
+                Добавить строку
+              </div>
+              <div 
+                style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }}
+                onClick={() => handleDeleteRow(contextMenu.index)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#ffebee')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+              >
+                Удалить строку {contextMenu.index + 1}
+              </div>
+            </>
+          ) : (
+            <>
+              <div 
+                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+                onClick={() => handleAddColumn(contextMenu.index)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+              >
+                Добавить столбец
+              </div>
+              <div 
+                style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }}
+                onClick={() => handleDeleteColumn(contextMenu.index)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#ffebee')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+              >
+                Удалить столбец {String.fromCharCode(65 + contextMenu.index)}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
