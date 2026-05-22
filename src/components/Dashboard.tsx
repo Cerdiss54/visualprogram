@@ -3,10 +3,11 @@ import { DocumentItem } from '@/types/spreadsheet';
 
 interface DashboardProps {
   documents: DocumentItem[];
-  onCreateDoc: (title: string, rows: number, cols: number) => void;
+  onCreateDoc: (title: string, rows: number, cols: number, data?: any) => void; // опционально можно передавать данные для копирования
   onSelectDoc: (id: string) => void;
   onDeleteDoc: (id: string) => void;
   onRenameDoc: (id: string, newTitle: string) => void;
+  onDuplicateDoc: (id: string) => void; // новый проп
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -38,17 +39,15 @@ function PreviewTable({ doc }: { doc: DocumentItem }) {
   );
 }
 
-export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDeleteDoc, onRenameDoc }: DashboardProps) {
+export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDeleteDoc, onRenameDoc, onDuplicateDoc }: DashboardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState('');
   const [docRows, setDocRows] = useState(100);
   const [docCols, setDocCols] = useState(26);
   
-  // Состояние для редактирования названия
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
-  // Состояние для подтверждения удаления
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [docToDelete, setDocToDelete] = useState<string | null>(null);
 
@@ -111,6 +110,11 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
     setDeleteConfirmOpen(false);
   };
 
+  const handleDuplicate = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDuplicateDoc(id);
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -160,13 +164,22 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
                 <PreviewTable doc={doc} />
               </div>
 
-              <button
-                className="btn-delete"
-                onClick={(e) => confirmDelete(doc.id, e)}
-                title="Удалить таблицу"
-              >
-                Удалить
-              </button>
+              <div className="doc-actions">
+                <button
+                  className="btn-duplicate"
+                  onClick={(e) => handleDuplicate(doc.id, e)}
+                  title="Копировать"
+                >
+                  Копировать
+                </button>
+                <button
+                  className="btn-delete"
+                  onClick={(e) => confirmDelete(doc.id, e)}
+                  title="Удалить таблицу"
+                >
+                  Удалить
+                </button>
+              </div>
             </div>
           ))
         )}
@@ -225,7 +238,6 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
         </div>
       )}
 
-      {/* Модалка подтверждения удаления */}
       {deleteConfirmOpen && (
         <div className="modal-overlay" onClick={cancelDelete}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

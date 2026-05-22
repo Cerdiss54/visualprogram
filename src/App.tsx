@@ -362,6 +362,22 @@ export default function App() {
     });
     setEditingCellId(null);
   }, []);
+  const handleDuplicateDocument = useCallback((id: string) => {
+  const originalDoc = documents.find(d => d.id === id);
+  if (!originalDoc) return;
+
+  const newTitle = `Копия ${originalDoc.title}`;
+  const newDoc: DocumentItem = {
+    id: crypto.randomUUID(),
+    title: newTitle,
+    rows: originalDoc.rows,
+    cols: originalDoc.cols,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    matrixData: JSON.parse(JSON.stringify(originalDoc.matrixData)), // глубокое копирование
+  };
+  setDocuments(prev => [newDoc, ...prev]);
+}, [documents]);
 
   const startEditing = useCallback((cellId: string, currentValue: string) => {
     setEditingCellId(cellId);
@@ -429,6 +445,7 @@ export default function App() {
     return (
       <Dashboard
         documents={documents}
+        onDuplicateDoc={handleDuplicateDocument}
         onCreateDoc={handleCreateDocument}
         onSelectDoc={handleSelectDocument}
         onDeleteDoc={handleDeleteDocument}
