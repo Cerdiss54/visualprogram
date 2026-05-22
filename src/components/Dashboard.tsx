@@ -6,6 +6,7 @@ interface DashboardProps {
   onCreateDoc: (title: string, rows: number, cols: number) => void;
   onSelectDoc: (id: string) => void;
   onDeleteDoc: (id: string) => void;
+  onRenameDoc: (id: string, newTitle: string) => void; // новый проп
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -37,11 +38,15 @@ function PreviewTable({ doc }: { doc: DocumentItem }) {
   );
 }
 
-export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDeleteDoc }: DashboardProps) {
+export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDeleteDoc, onRenameDoc }: DashboardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState('');
   const [docRows, setDocRows] = useState(100);
   const [docCols, setDocCols] = useState(26);
+  
+  // Состояние для редактирования названия
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,6 +61,31 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
     setDocRows(100);
     setDocCols(26);
     setIsModalOpen(false);
+  };
+
+  const startRename = (doc: DocumentItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingDocId(doc.id);
+    setEditingTitle(doc.title);
+  };
+
+  const saveRename = () => {
+    if (editingDocId && editingTitle.trim()) {
+      onRenameDoc(editingDocId, editingTitle.trim());
+    }
+    setEditingDocId(null);
+    setEditingTitle('');
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveRename();
+    }
+    if (e.key === 'Escape') {
+      setEditingDocId(null);
+      setEditingTitle('');
+    }
   };
 
   return (
@@ -75,7 +105,29 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
             <div key={doc.id} className="doc-card" onClick={() => onSelectDoc(doc.id)}>
               <div className="doc-main-content">
                 <div className="doc-meta-info">
-                  <h3>{doc.title}</h3>
+                  {editingDocId === doc.id ? (
+                    <input
+                      type="text"
+                      className="rename-input"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={saveRename}
+                      onKeyDown={handleRenameKeyDown}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <div className="doc-title-wrapper">
+                      <h3>{doc.title}</h3>
+                      <button
+                        className="btn-rename"
+                        onClick={(e) => startRename(doc, e)}
+                        title="Переименовать"
+                      >
+                        Переименовать
+                      </button>
+                    </div>
+                  )}
                   <span className="doc-dimensions-badge">
                     Размер: {doc.rows} × {doc.cols}
                   </span>
