@@ -1,8 +1,8 @@
-import { CellData } from '../types/spreadsheet';
+import { SpreadsheetData } from '../types/spreadsheet';
 
 
-export const createEmptyData = (rows: number, cols: number, alphabet: string[]): { [key: string]: CellData } => {
-  const empty: { [key: string]: CellData } = {};
+export const createEmptyData = (rows: number, cols: number, alphabet: string[]): SpreadsheetData => {
+  const empty: SpreadsheetData = {};
 
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < Math.min(cols, alphabet.length); j++) {

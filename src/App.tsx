@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createEmptyData } from '@/functions/tableRendering';
-import { CellCoords, SelectedRange } from '@/types/spreadsheet';
+import { recalculateTable } from '@/functions/formulaParser';
+import { CellCoords, SelectedRange, SpreadsheetData } from '@/types/spreadsheet';
 import '@/App.css';
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -30,25 +31,30 @@ const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => 
 };
 
 export default function App() {
-  const [matrixData, setMatrixData] = useState(() => createEmptyData(ROWS, COLS, alphabet));
+  const [matrixData, setMatrixData] = useState<SpreadsheetData>(() => 
+    createEmptyData(ROWS, COLS, alphabet)
+  );
+  
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState<string>('');
   const [selectedRange, setSelectedRange] = useState<SelectedRange | null>(null);
-  
   const [lastClickedCell, setLastClickedCell] = useState<string | null>(null);
   
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = useCallback((cellId: string, value: string) => {
-    setMatrixData((prev) => ({
-      ...prev,
-      [cellId]: {
-        id: cellId,
-        entValue: value,
-        dispValue: value,
-      },
-    }));
+    setMatrixData((prev) => {
+      const updated: SpreadsheetData = {
+        ...prev,
+        [cellId]: {
+          id: cellId,
+          entValue: value,
+          dispValue: prev[cellId]?.dispValue || '',
+        },
+      };
+      return recalculateTable(updated); 
+    });
     setEditingCellId(null);
   }, []);
 
@@ -90,16 +96,18 @@ export default function App() {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && activeCellId && !editingCellId) {
+      if (editingCellId) return;
+
+      if ((e.key === 'Enter') && activeCellId) {
         e.preventDefault();
-        startEditing(activeCellId, matrixData[activeCellId]?.entValue || '');
-      }
-      if (e.key === 'F2' && activeCellId && !editingCellId) {
-        e.preventDefault();
-        startEditing(activeCellId, matrixData[activeCellId]?.entValue || '');
+        setMatrixData((prev) => {
+          startEditing(activeCellId, prev[activeCellId]?.entValue || '');
+          return prev;
+        });
+        return;
       }
 
-      if (!editingCellId && activeCellId) {
+      if (activeCellId) {
         const coords = cellIdToCoords(activeCellId);
         let newRow = coords.row;
         let newCol = coords.col;
@@ -113,11 +121,10 @@ export default function App() {
           e.preventDefault();
           const newCellId = coordsToCellId({ row: newRow, col: newCol });
           setActiveCellId(newCellId);
-          const newRange = {
+          setSelectedRange({
             start: { row: newRow, col: newCol },
             end: { row: newRow, col: newCol },
-          };
-          setSelectedRange(newRange);
+          });
           setLastClickedCell(newCellId);
         }
       }
@@ -125,18 +132,13 @@ export default function App() {
     
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [activeCellId, editingCellId, matrixData, startEditing]);
+  }, [activeCellId, editingCellId, startEditing]);
 
   useEffect(() => {
     if (editingCellId && editInputRef.current) {
       editInputRef.current.focus();
     }
   }, [editingCellId]);
-
-  const getFormulaBarValue = () => {
-    if (!activeCellId) return '';
-    return matrixData[activeCellId]?.entValue || '';
-  };
 
   return (
     <div className="app-container">
@@ -145,20 +147,15 @@ export default function App() {
         <input
           type="text"
           className="formula-input"
-          value={getFormulaBarValue()}
+          value={activeCellId ? matrixData[activeCellId]?.entValue || '' : ''}
+          disabled={!activeCellId}
+          placeholder="Содержимое активной ячейки..."
           onChange={(e) => {
             if (activeCellId) {
-              setMatrixData((prev) => ({
-                ...prev,
-                [activeCellId]: {
-                  id: activeCellId,
-                  entValue: e.target.value,
-                  dispValue: e.target.value,
-                },
-              }));
+              handleSave(activeCellId, e.target.value);
+              setInputValue(e.target.value);
             }
           }}
-          placeholder="Содержимое активной ячейки..."
         />
       </div>
 
@@ -193,7 +190,7 @@ export default function App() {
                         key={cellId}
                         className={`grid-cell ${isActive ? 'active' : ''}`}
                         style={{
-                          backgroundColor: isInRange ? '#e6f4ea' : undefined,
+                          backgroundColor: isInRange && !isActive ? '#e6f4ea' : undefined,
                         }}
                         onClick={(e) => handleCellClick(cellId, e)}
                         onDoubleClick={() => startEditing(cellId, cell?.entValue ?? '')}

@@ -4,6 +4,10 @@ export interface CellData {
     dispValue: string;
 }
 
+export interface SpreadsheetData {
+  [cellId: string]: CellData;
+}
+
 export interface CellCoords {
     row: number;
     col: number;
