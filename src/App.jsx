@@ -12,19 +12,19 @@ function App() {
   if (error) return <div className="app-container night">Ошибка: {error}</div>;
   if (!data) return <div className="app-container night">Загрузка...</div>;
 
-  const isNight = data.forecast.list[0].sys.pod === 'n';
+  const isNight = data?.forecast?.list?.[0]?.sys?.pod === 'n';
 
   return (
     <div className={`app-container ${isNight ? 'night' : 'day'}`}>
       <div className="content-wrapper">
         <SearchBar onSearch={setCity} />
         <CurrentWeather 
-          city={data.forecast.city.name} 
-          current={data.forecast.list[0]} 
+          city={data?.forecast?.city?.name} 
+          current={data?.forecast?.list?.[0]} 
         />
-        <AirPollution data={data.air.list[0]} />
+        <AirPollution data={data?.air?.list?.[0]} />
         <div className="card">
-          <Forecast list={data.forecast.list} />
+          <Forecast list={data?.forecast?.list} />
         </div>
       </div>
     </div>
