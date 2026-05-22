@@ -282,6 +282,11 @@ export default function App() {
   const [selectedRange, setSelectedRange] = useState<SelectedRange | null>(null);
   const [lastClickedCell, setLastClickedCell] = useState<string | null>(null);
 
+  const [saveStatus, setSaveStatus] = useState<'Сохранено' | 'Сохранение...' | 'Ошибка сохранения'>('Сохранено');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextSaveRef = useRef(false);
+
   const editInputRef = useRef<HTMLInputElement>(null);
   const currentDoc = documents.find((d) => d.id === activeDocId);
   const currentRows = currentDoc?.rows ?? 0;
@@ -297,6 +302,28 @@ export default function App() {
     }
   }, [activeDocId, currentDoc]);
 
+  const saveToApi = useCallback(async (docId: string, data: SpreadsheetData) => {
+    setSaveStatus('Сохранение...');
+    try {
+      // Имитация успешного запроса к API для локальной разработки
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      /* const response = await fetch(`/api/documents/${docId}`, {
+      //   method: 'PATCH',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ matrixData: data }),
+      // });
+      // if (!response.ok) throw new Error('Ошибка при сохранении на сервере');
+      */
+
+      setSaveStatus('Сохранено');
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error(error);
+      setSaveStatus('Ошибка сохранения');
+    }
+  }, []);
+
   useEffect(() => {
     if (activeDocId && Object.keys(matrixData).length > 0) {
       setDocuments((prev) =>
@@ -306,8 +333,33 @@ export default function App() {
             : doc
         )
       );
+
+      if (skipNextSaveRef.current) {
+        skipNextSaveRef.current = false;
+        return;
+      }
+
+      setHasUnsavedChanges(true);
+      setSaveStatus('Сохранение...');
+
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      
+      saveTimeoutRef.current = setTimeout(() => {
+        saveToApi(activeDocId, matrixData);
+      }, 500);
     }
-  }, [matrixData, activeDocId]);
+  }, [matrixData, activeDocId, saveToApi]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const handleCreateDocument = (title: string, rows: number, cols: number) => {
     const newDoc: DocumentItem = {
@@ -329,6 +381,9 @@ export default function App() {
     setSelectedRange(null);
     setEditingCellId(null);
     setLastClickedCell(null);
+    skipNextSaveRef.current = true;
+    setSaveStatus('Сохранено');
+    setHasUnsavedChanges(false);
   };
 
   const handleDeleteDocument = (id: string) => {
@@ -405,6 +460,16 @@ export default function App() {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Горячая клавиша для ручного сохранения
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        if (activeDocId) {
+          e.preventDefault();
+          if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+          saveToApi(activeDocId, matrixData);
+        }
+        return;
+      }
+
       if (editingCellId || screen !== 'spreadsheet') return;
       if ((e.key === 'Enter' || e.key === 'F2') && activeCellId) {
         e.preventDefault();
@@ -433,7 +498,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [activeCellId, editingCellId, startEditing, screen, currentRows, currentCols, matrixData]);
+  }, [activeCellId, editingCellId, startEditing, screen, currentRows, currentCols, matrixData, activeDocId, saveToApi]);
 
   useEffect(() => {
     if (editingCellId && editInputRef.current) {
@@ -462,7 +527,16 @@ export default function App() {
         <button className="btn-back" onClick={() => setScreen('dashboard')}>
           ⬅ На главную
         </button>
-        <span className="current-doc-title">📄 {currentDoc.title}</span>
+        <span className="current-doc-title">{currentDoc.title}</span>
+        <span
+          style={{
+            marginLeft: '15px',
+            fontSize: '14px',
+            color: saveStatus === 'Ошибка сохранения' ? '#d32f2f' : '#888',
+          }}
+        >
+          {saveStatus}
+        </span>
       </div>
 
       <div className="formula-bar">
