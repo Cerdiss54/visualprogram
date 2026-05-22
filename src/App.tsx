@@ -31,7 +31,6 @@ const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => 
   return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
 };
 
-// Компонент таблицы (ресайз + контекстное меню)
 interface SpreadsheetTableProps {
   matrixData: SpreadsheetData;
   setMatrixData: React.Dispatch<React.SetStateAction<SpreadsheetData>>;
@@ -269,7 +268,6 @@ const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({
   );
 };
 
-// Основной компонент App
 export default function App() {
   const [screen, setScreen] = useState<'dashboard' | 'spreadsheet'>('dashboard');
   const [documents, setDocuments] = useState<DocumentItem[]>(() => {
@@ -277,7 +275,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
-
   const [matrixData, setMatrixData] = useState<SpreadsheetData>({});
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
@@ -286,7 +283,6 @@ export default function App() {
   const [lastClickedCell, setLastClickedCell] = useState<string | null>(null);
 
   const editInputRef = useRef<HTMLInputElement>(null);
-
   const currentDoc = documents.find((d) => d.id === activeDocId);
   const currentRows = currentDoc?.rows ?? 0;
   const currentCols = currentDoc?.cols ?? 0;
@@ -295,14 +291,12 @@ export default function App() {
     localStorage.setItem('spreadsheet_docs', JSON.stringify(documents));
   }, [documents]);
 
-  // Загружаем данные документа при выборе
   useEffect(() => {
     if (activeDocId && currentDoc) {
       setMatrixData(currentDoc.matrixData);
     }
   }, [activeDocId, currentDoc]);
 
-  // Сохраняем изменения matrixData обратно в документ
   useEffect(() => {
     if (activeDocId && Object.keys(matrixData).length > 0) {
       setDocuments((prev) =>
@@ -346,7 +340,6 @@ export default function App() {
     }
   };
 
-  // НОВАЯ ФУНКЦИЯ: переименование документа
   const handleRenameDocument = useCallback((id: string, newTitle: string) => {
     setDocuments((prev) =>
       prev.map((doc) =>
@@ -394,7 +387,6 @@ export default function App() {
     }
   }, [lastClickedCell]);
 
-  // Навигация клавишами
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (editingCellId || screen !== 'spreadsheet') return;

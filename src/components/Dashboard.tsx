@@ -6,7 +6,7 @@ interface DashboardProps {
   onCreateDoc: (title: string, rows: number, cols: number) => void;
   onSelectDoc: (id: string) => void;
   onDeleteDoc: (id: string) => void;
-  onRenameDoc: (id: string, newTitle: string) => void; // новый проп
+  onRenameDoc: (id: string, newTitle: string) => void;
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -48,6 +48,10 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
+  // Состояние для подтверждения удаления
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newDocTitle.trim()) return;
@@ -86,6 +90,25 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
       setEditingDocId(null);
       setEditingTitle('');
     }
+  };
+
+  const confirmDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDocToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirmed = () => {
+    if (docToDelete) {
+      onDeleteDoc(docToDelete);
+      setDocToDelete(null);
+    }
+    setDeleteConfirmOpen(false);
+  };
+
+  const cancelDelete = () => {
+    setDocToDelete(null);
+    setDeleteConfirmOpen(false);
   };
 
   return (
@@ -139,10 +162,7 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
 
               <button
                 className="btn-delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteDoc(doc.id);
-                }}
+                onClick={(e) => confirmDelete(doc.id, e)}
                 title="Удалить таблицу"
               >
                 Удалить
@@ -201,6 +221,24 @@ export default function Dashboard({ documents, onCreateDoc, onSelectDoc, onDelet
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка подтверждения удаления */}
+      {deleteConfirmOpen && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Подтверждение удаления</h2>
+            <p>Вы уверены, что хотите удалить этот документ? Восстановить его будет невозможно.</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={cancelDelete}>
+                Отмена
+              </button>
+              <button className="btn-confirm btn-danger" onClick={handleDeleteConfirmed}>
+                Удалить
+              </button>
+            </div>
           </div>
         </div>
       )}
