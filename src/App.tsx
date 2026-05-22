@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Dashboard from '@/components/Dashboard';
 import { createEmptyData } from '@/functions/tableRendering';
 import { recalculateTable } from '@/functions/formulaParser';
@@ -30,6 +30,7 @@ const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => 
   const maxCol = Math.max(range.start.col, range.end.col);
   return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
 };
+
 
 interface SpreadsheetTableProps {
   matrixData: SpreadsheetData;
@@ -305,17 +306,7 @@ export default function App() {
   const saveToApi = useCallback(async (docId: string, data: SpreadsheetData) => {
     setSaveStatus('Сохранение...');
     try {
-      // Имитация успешного запроса к API для локальной разработки
       await new Promise((resolve) => setTimeout(resolve, 500));
-
-      /* const response = await fetch(`/api/documents/${docId}`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ matrixData: data }),
-      // });
-      // if (!response.ok) throw new Error('Ошибка при сохранении на сервере');
-      */
-
       setSaveStatus('Сохранено');
       setHasUnsavedChanges(false);
     } catch (error) {
@@ -333,17 +324,13 @@ export default function App() {
             : doc
         )
       );
-
       if (skipNextSaveRef.current) {
         skipNextSaveRef.current = false;
         return;
       }
-
       setHasUnsavedChanges(true);
       setSaveStatus('Сохранение...');
-
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      
       saveTimeoutRef.current = setTimeout(() => {
         saveToApi(activeDocId, matrixData);
       }, 500);
@@ -417,22 +404,36 @@ export default function App() {
     });
     setEditingCellId(null);
   }, []);
-  const handleDuplicateDocument = useCallback((id: string) => {
-  const originalDoc = documents.find(d => d.id === id);
-  if (!originalDoc) return;
 
-  const newTitle = `Копия ${originalDoc.title}`;
-  const newDoc: DocumentItem = {
-    id: crypto.randomUUID(),
-    title: newTitle,
-    rows: originalDoc.rows,
-    cols: originalDoc.cols,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    matrixData: JSON.parse(JSON.stringify(originalDoc.matrixData)), // глубокое копирование
-  };
-  setDocuments(prev => [newDoc, ...prev]);
-}, [documents]);
+  const handleDuplicateDocument = useCallback((id: string) => {
+    const originalDoc = documents.find(d => d.id === id);
+    if (!originalDoc) return;
+    const newTitle = `Копия ${originalDoc.title}`;
+    const newDoc: DocumentItem = {
+      id: crypto.randomUUID(),
+      title: newTitle,
+      rows: originalDoc.rows,
+      cols: originalDoc.cols,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      matrixData: JSON.parse(JSON.stringify(originalDoc.matrixData)),
+    };
+    setDocuments(prev => [newDoc, ...prev]);
+  }, [documents]);
+
+  const handleImportDocument = useCallback((doc: DocumentItem) => {
+    setDocuments(prev => [doc, ...prev]);
+    setActiveDocId(doc.id);
+    setScreen('spreadsheet');
+    setMatrixData(doc.matrixData);
+    setActiveCellId(null);
+    setSelectedRange(null);
+    setEditingCellId(null);
+    setLastClickedCell(null);
+    skipNextSaveRef.current = true;
+    setSaveStatus('Сохранено');
+    setHasUnsavedChanges(false);
+  }, []);
 
   const startEditing = useCallback((cellId: string, currentValue: string) => {
     setEditingCellId(cellId);
@@ -458,9 +459,57 @@ export default function App() {
     }
   }, [lastClickedCell]);
 
+  const exportToCSV = () => {
+    if (!currentDoc) return;
+    const { rows, cols, matrixData } = currentDoc;
+    const csvRows: string[] = [];
+    for (let r = 0; r < rows; r++) {
+      const rowData: string[] = [];
+      for (let c = 0; c < cols; c++) {
+        const cellId = `${alphabet[c]}${r + 1}`;
+        let value = matrixData[cellId]?.entValue || '';
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          value = `"${value.replace(/"/g, '""')}"`;
+        }
+        rowData.push(value);
+      }
+      csvRows.push(rowData.join(','));
+    }
+    const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `${currentDoc.title}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToJSON = () => {
+    if (!currentDoc) return;
+    const exportDoc = {
+      title: currentDoc.title,
+      rows: currentDoc.rows,
+      cols: currentDoc.cols,
+      matrixData: currentDoc.matrixData,
+      createdAt: currentDoc.createdAt,
+      updatedAt: currentDoc.updatedAt,
+    };
+    const jsonStr = JSON.stringify(exportDoc, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `${currentDoc.title}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Горячая клавиша для ручного сохранения
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         if (activeDocId) {
           e.preventDefault();
@@ -469,7 +518,6 @@ export default function App() {
         }
         return;
       }
-
       if (editingCellId || screen !== 'spreadsheet') return;
       if ((e.key === 'Enter' || e.key === 'F2') && activeCellId) {
         e.preventDefault();
@@ -515,6 +563,7 @@ export default function App() {
         onSelectDoc={handleSelectDocument}
         onDeleteDoc={handleDeleteDocument}
         onRenameDoc={handleRenameDocument}
+        onImportDoc={handleImportDocument}
       />
     );
   }
@@ -528,6 +577,10 @@ export default function App() {
           ⬅ На главную
         </button>
         <span className="current-doc-title">{currentDoc.title}</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button onClick={exportToCSV}>Экспорт CSV</button>
+          <button onClick={exportToJSON}>Экспорт JSON</button>
+        </div>
         <span
           style={{
             marginLeft: '15px',
