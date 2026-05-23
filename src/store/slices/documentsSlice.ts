@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { DocumentItem } from '@/types/spreadsheet';
 import { createEmptyData } from '@/functions/tableRendering';
 import { setMatrix } from './spreadsheetSlice';
-import { setSaveStatus } from './uiSlice';
+import { setScreen, setSaveStatus, setLoading } from './uiSlice';
 
 interface DocumentsState {
   list: DocumentItem[];
@@ -16,9 +16,13 @@ const initialState: DocumentsState = {
   status: 'idle',
 };
 
-export const fetchDocuments = createAsyncThunk('documents/fetchAll', async () => {
-  await new Promise((res) => setTimeout(res, 600)); 
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+export const fetchDocuments = createAsyncThunk('documents/fetchAll', async (_, { dispatch }) => {
+  dispatch(setLoading(true));
+  await new Promise((res) => setTimeout(res, 600));
   const saved = localStorage.getItem('spreadsheet_docs');
+  dispatch(setLoading(false));
   return saved ? JSON.parse(saved) : [];
 });
 
@@ -26,8 +30,6 @@ export const createNewDocument = createAsyncThunk(
   'documents/create',
   async (payload: { title: string; rows: number; cols: number }) => {
     const { title, rows, cols } = payload;
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    
     const newDoc: DocumentItem = {
       id: crypto.randomUUID(),
       title,
@@ -41,12 +43,49 @@ export const createNewDocument = createAsyncThunk(
   }
 );
 
+export const renameDocument = createAsyncThunk(
+  'documents/rename',
+  async ({ id, newTitle }: { id: string; newTitle: string }) => {
+    return { id, newTitle, updatedAt: new Date().toISOString() };
+  }
+);
+
+export const duplicateDocument = createAsyncThunk(
+  'documents/duplicate',
+  async (id: string, { getState }) => {
+    const state = getState() as any;
+    const original = state.documents.list.find((d: DocumentItem) => d.id === id);
+    if (!original) throw new Error('Document not found');
+    const newDoc: DocumentItem = {
+      id: crypto.randomUUID(),
+      title: `Копия ${original.title}`,
+      rows: original.rows,
+      cols: original.cols,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      matrixData: JSON.parse(JSON.stringify(original.matrixData)),
+    };
+    return newDoc;
+  }
+);
+
+export const importDocument = createAsyncThunk(
+  'documents/import',
+  async (doc: DocumentItem) => {
+    return {
+      ...doc,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+);
+
 export const saveActiveDocument = createAsyncThunk(
   'documents/saveActive',
   async (_, { getState, dispatch }) => {
     dispatch(setSaveStatus('saving'));
-    await new Promise((res) => setTimeout(res, 500)); 
-    
+    await new Promise((res) => setTimeout(res, 500));
     const state = getState() as any;
     const activeDocId = state.documents.activeDocId;
     const currentMatrix = state.spreadsheet.matrixData;
@@ -59,9 +98,21 @@ export const saveActiveDocument = createAsyncThunk(
         ? { ...doc, updatedAt: new Date().toISOString(), matrixData: currentMatrix }
         : doc
     );
-
     localStorage.setItem('spreadsheet_docs', JSON.stringify(updatedList));
+    dispatch(setSaveStatus('saved'));
     return updatedList;
+  }
+);
+
+export const switchDocument = createAsyncThunk(
+  'documents/switch',
+  async (docId: string, { getState, dispatch }) => {
+    const state = getState() as any;
+    const doc = state.documents.list.find((d: DocumentItem) => d.id === docId);
+    if (!doc) throw new Error('Document not found');
+    dispatch(setMatrix(doc.matrixData));
+    dispatch(setScreen('spreadsheet'));
+    return docId;
   }
 );
 
@@ -76,11 +127,13 @@ const documentsSlice = createSlice({
       state.list = state.list.filter((d) => d.id !== action.payload);
       if (state.activeDocId === action.payload) state.activeDocId = null;
       localStorage.setItem('spreadsheet_docs', JSON.stringify(state.list));
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDocuments.pending, (state) => { state.status = 'loading'; })
+      .addCase(fetchDocuments.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(fetchDocuments.fulfilled, (state, action) => {
         state.status = 'idle';
         state.list = action.payload;
@@ -91,6 +144,26 @@ const documentsSlice = createSlice({
       })
       .addCase(saveActiveDocument.fulfilled, (state, action) => {
         state.list = action.payload;
+      })
+      .addCase(renameDocument.fulfilled, (state, action) => {
+        const { id, newTitle, updatedAt } = action.payload;
+        const doc = state.list.find((d) => d.id === id);
+        if (doc) {
+          doc.title = newTitle;
+          doc.updatedAt = updatedAt;
+          localStorage.setItem('spreadsheet_docs', JSON.stringify(state.list));
+        }
+      })
+      .addCase(duplicateDocument.fulfilled, (state, action) => {
+        state.list.unshift(action.payload);
+        localStorage.setItem('spreadsheet_docs', JSON.stringify(state.list));
+      })
+      .addCase(importDocument.fulfilled, (state, action) => {
+        state.list.unshift(action.payload);
+        localStorage.setItem('spreadsheet_docs', JSON.stringify(state.list));
+      })
+      .addCase(switchDocument.fulfilled, (state, action) => {
+        state.activeDocId = action.payload;
       });
   },
 });

@@ -6,7 +6,7 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: { id: 'user-777', name: 'Даниил Шильников', email: 'daniil@example.com' }, // Mock-user
+  user: { id: 'user-777', name: 'Даниил Шильников', email: 'daniil@example.com' },
   isAuthenticated: true,
 };
 

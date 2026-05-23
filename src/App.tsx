@@ -1,9 +1,28 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Dashboard from '@/components/Dashboard';
-import { createEmptyData } from '@/functions/tableRendering';
-import { recalculateTable } from '@/functions/formulaParser';
-import { CellCoords, SelectedRange, SpreadsheetData, DocumentItem } from '@/types/spreadsheet';
-import { useTableEditor } from '@/functions/tableEditor';
+import {
+  setActiveCell,
+  setSelectedRange,
+  setLastClickedCell,
+  updateCellData,
+  addRowThunk,
+  deleteRowThunk,
+  addColumnThunk,
+  deleteColumnThunk,
+} from '@/store/slices/spreadsheetSlice';
+import {
+  switchDocument,
+  deleteDocumentById,
+  renameDocument,
+  duplicateDocument,
+  importDocument,
+  createNewDocument,
+  fetchDocuments,
+  saveActiveDocument,
+} from '@/store/slices/documentsSlice';
+import { setScreen, setHasUnsavedChanges, setSaveStatus } from '@/store/slices/uiSlice';
+import { CellCoords, SelectedRange, DocumentItem, ContextMenuState } from '@/types/spreadsheet';
 import { useTableResize } from '@/functions/tableResize';
 import '@/App.css';
 
@@ -17,9 +36,7 @@ const cellIdToCoords = (id: string): CellCoords => {
   return { row, col };
 };
 
-const coordsToCellId = (coords: CellCoords): string => {
-  return `${alphabet[coords.col]}${coords.row + 1}`;
-};
+const coordsToCellId = (coords: CellCoords): string => `${alphabet[coords.col]}${coords.row + 1}`;
 
 const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => {
   if (!range) return false;
@@ -31,105 +48,106 @@ const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => 
   return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
 };
 
+// ----------------------------------------------------------------------
+// Компонент таблицы (внутри App)
+// ----------------------------------------------------------------------
+const SpreadsheetTable: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const matrixData = useAppSelector((s) => s.spreadsheet.matrixData);
+  const activeCellId = useAppSelector((s) => s.spreadsheet.activeCellId);
+  const selectedRange = useAppSelector((s) => s.spreadsheet.selectedRange);
+  const lastClickedCell = useAppSelector((s) => s.spreadsheet.lastClickedCell);
+  const currentDoc = useAppSelector((s) =>
+    s.documents.list.find((d) => d.id === s.documents.activeDocId)
+  );
+  const rows = currentDoc?.rows ?? 0;
+  const cols = currentDoc?.cols ?? 0;
 
-interface SpreadsheetTableProps {
-  matrixData: SpreadsheetData;
-  setMatrixData: React.Dispatch<React.SetStateAction<SpreadsheetData>>;
-  rows: number;
-  cols: number;
-  activeCellId: string | null;
-  setActiveCellId: React.Dispatch<React.SetStateAction<string | null>>;
-  editingCellId: string | null;
-  setEditingCellId: React.Dispatch<React.SetStateAction<string | null>>;
-  inputValue: string;
-  setInputValue: React.Dispatch<React.SetStateAction<string>>;
-  selectedRange: SelectedRange | null;
-  setSelectedRange: React.Dispatch<React.SetStateAction<SelectedRange | null>>;
-  lastClickedCell: string | null;
-  setLastClickedCell: React.Dispatch<React.SetStateAction<string | null>>;
-  handleSave: (cellId: string, value: string) => void;
-  startEditing: (cellId: string, currentValue: string) => void;
-  handleCellClick: (cellId: string, e: React.MouseEvent) => void;
-  editInputRef: React.RefObject<HTMLInputElement>;
-}
+  const [editingCellId, setEditingCellId] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState<string>('');
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
-const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({
-  matrixData,
-  setMatrixData,
-  rows,
-  cols,
-  activeCellId,
-  setActiveCellId,
-  editingCellId,
-  setEditingCellId,
-  inputValue,
-  setInputValue,
-  selectedRange,
-  setSelectedRange,
-  lastClickedCell,
-  setLastClickedCell,
-  handleSave,
-  startEditing,
-  handleCellClick,
-  editInputRef,
-}) => {
-  const {
-    contextMenu,
-    handleAddRow,
-    handleDeleteRow,
-    handleAddColumn,
-    handleDeleteColumn,
-    openContextMenu,
-    closeContextMenu,
-  } = useTableEditor(matrixData, setMatrixData, cols, rows, alphabet);
+  const { columnWidths, rowHeights, startResizeColumn, startResizeRow, isResizing } = useTableResize(cols, rows);
 
-  const {
-    columnWidths,
-    rowHeights,
-    startResizeColumn,
-    startResizeRow,
-    isResizing,
-  } = useTableResize(cols, rows);
+  const handleSave = useCallback((cellId: string, value: string) => {
+    dispatch(updateCellData({ cellId, entValue: value }));
+    setEditingCellId(null);
+  }, [dispatch]);
 
-  const handleColumnMouseDown = useCallback((colIndex: number, e: React.MouseEvent<HTMLTableHeaderCellElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const isOnRightEdge = e.clientX >= rect.right - 5;
-    if (isOnRightEdge) {
-      e.preventDefault();
-      if (colIndex >= 0 && colIndex < columnWidths.length) {
-        startResizeColumn(colIndex, e.clientX, columnWidths[colIndex]);
-      }
+  const startEditing = useCallback((cellId: string, currentValue: string) => {
+    setEditingCellId(cellId);
+    setInputValue(currentValue);
+  }, []);
+
+  const handleCellClick = useCallback((cellId: string, e: React.MouseEvent) => {
+    const clickedCoords = cellIdToCoords(cellId);
+    if (e.shiftKey && lastClickedCell) {
+      const startCoords = cellIdToCoords(lastClickedCell);
+      dispatch(setSelectedRange({ start: startCoords, end: clickedCoords }));
+      dispatch(setActiveCell(cellId));
+    } else if (!e.shiftKey) {
+      dispatch(setSelectedRange({ start: clickedCoords, end: clickedCoords }));
+      dispatch(setActiveCell(cellId));
+      dispatch(setLastClickedCell(cellId));
     }
-  }, [columnWidths, startResizeColumn]);
+  }, [dispatch, lastClickedCell]);
 
-  const handleRowMouseDown = useCallback((rowIndex: number, e: React.MouseEvent<HTMLTableCellElement>) => {
+  const openContextMenu = (e: React.MouseEvent, type: 'row' | 'column', index: number) => {
+    e.preventDefault();
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, type, index });
+  };
+  const closeContextMenu = () => setContextMenu(null);
+
+  const handleAddRow = (rowIndex: number) => {
+    dispatch(addRowThunk({ rowIndex: rowIndex + 1, totalCols: cols, alphabet }));
+    closeContextMenu();
+  };
+  const handleDeleteRow = (rowIndex: number) => {
+    dispatch(deleteRowThunk({ rowIndex: rowIndex + 1, alphabet }));
+    closeContextMenu();
+  };
+  const handleAddColumn = (colIndex: number) => {
+    dispatch(addColumnThunk({ colIndex, totalRows: rows, alphabet }));
+    closeContextMenu();
+  };
+  const handleDeleteColumn = (colIndex: number) => {
+    dispatch(deleteColumnThunk({ colIndex, alphabet }));
+    closeContextMenu();
+  };
+
+  const handleColumnMouseDown = (colIndex: number, e: React.MouseEvent<HTMLTableHeaderCellElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const isOnBottomEdge = e.clientY >= rect.bottom - 5;
-    if (isOnBottomEdge) {
+    if (e.clientX >= rect.right - 5) {
       e.preventDefault();
-      if (rowIndex >= 0 && rowIndex < rowHeights.length) {
-        startResizeRow(rowIndex, e.clientY, rowHeights[rowIndex]);
-      }
+      startResizeColumn(colIndex, e.clientX, columnWidths[colIndex]);
     }
-  }, [rowHeights, startResizeRow]);
+  };
+  const handleRowMouseDown = (rowIndex: number, e: React.MouseEvent<HTMLTableCellElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientY >= rect.bottom - 5) {
+      e.preventDefault();
+      startResizeRow(rowIndex, e.clientY, rowHeights[rowIndex]);
+    }
+  };
 
   useEffect(() => {
     if (contextMenu) {
       document.addEventListener('click', closeContextMenu);
       return () => document.removeEventListener('click', closeContextMenu);
     }
-  }, [contextMenu, closeContextMenu]);
+  }, [contextMenu]);
 
   useEffect(() => {
-    if (isResizing) {
-      document.body.style.cursor = 'col-resize';
-    } else {
-      document.body.style.cursor = '';
-    }
-    return () => {
-      document.body.style.cursor = '';
-    };
+    document.body.style.cursor = isResizing ? 'col-resize' : '';
+    return () => { document.body.style.cursor = ''; };
   }, [isResizing]);
+
+  useEffect(() => {
+    if (editingCellId && editInputRef.current) editInputRef.current.focus();
+  }, [editingCellId]);
+
+  if (!currentDoc) return null;
 
   return (
     <>
@@ -142,10 +160,7 @@ const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({
                 <th
                   key={letter}
                   className="sticky-col-header"
-                  style={{
-                    width: columnWidths[colIdx],
-                    position: 'relative',
-                  }}
+                  style={{ width: columnWidths[colIdx], position: 'relative' }}
                   onContextMenu={(e) => openContextMenu(e, 'column', colIdx)}
                   onMouseDown={(e) => handleColumnMouseDown(colIdx, e)}
                 >
@@ -198,9 +213,7 @@ const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({
                                 e.preventDefault();
                                 handleSave(cellId, inputValue);
                               }
-                              if (e.key === 'Escape') {
-                                setEditingCellId(null);
-                              }
+                              if (e.key === 'Escape') setEditingCellId(null);
                             }}
                             onBlur={() => handleSave(cellId, inputValue)}
                           />
@@ -234,31 +247,19 @@ const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({
         >
           {contextMenu.type === 'row' ? (
             <>
-              <div
-                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
-                onClick={() => handleAddRow(contextMenu.index)}
-              >
+              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }} onClick={() => handleAddRow(contextMenu.index)}>
                 Добавить строку
               </div>
-              <div
-                style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }}
-                onClick={() => handleDeleteRow(contextMenu.index)}
-              >
+              <div style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }} onClick={() => handleDeleteRow(contextMenu.index)}>
                 Удалить строку {contextMenu.index + 1}
               </div>
             </>
           ) : (
             <>
-              <div
-                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
-                onClick={() => handleAddColumn(contextMenu.index)}
-              >
+              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }} onClick={() => handleAddColumn(contextMenu.index)}>
                 Добавить столбец
               </div>
-              <div
-                style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }}
-                onClick={() => handleDeleteColumn(contextMenu.index)}
-              >
+              <div style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }} onClick={() => handleDeleteColumn(contextMenu.index)}>
                 Удалить столбец {String.fromCharCode(65 + contextMenu.index)}
               </div>
             </>
@@ -269,205 +270,72 @@ const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({
   );
 };
 
+// ----------------------------------------------------------------------
+// Главный компонент App
+// ----------------------------------------------------------------------
 export default function App() {
-  const [screen, setScreen] = useState<'dashboard' | 'spreadsheet'>('dashboard');
-  const [documents, setDocuments] = useState<DocumentItem[]>(() => {
-    const saved = localStorage.getItem('spreadsheet_docs');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [activeDocId, setActiveDocId] = useState<string | null>(null);
-  const [matrixData, setMatrixData] = useState<SpreadsheetData>({});
-  const [activeCellId, setActiveCellId] = useState<string | null>(null);
-  const [editingCellId, setEditingCellId] = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState<string>('');
-  const [selectedRange, setSelectedRange] = useState<SelectedRange | null>(null);
-  const [lastClickedCell, setLastClickedCell] = useState<string | null>(null);
-
-  const [saveStatus, setSaveStatus] = useState<'Сохранено' | 'Сохранение...' | 'Ошибка сохранения'>('Сохранено');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skipNextSaveRef = useRef(false);
-
-  const editInputRef = useRef<HTMLInputElement>(null);
+  const dispatch = useAppDispatch();
+  const screen = useAppSelector((s) => s.ui.screen);
+  const documents = useAppSelector((s) => s.documents.list);
+  const activeDocId = useAppSelector((s) => s.documents.activeDocId);
+  const matrixData = useAppSelector((s) => s.spreadsheet.matrixData);
+  const saveStatus = useAppSelector((s) => s.ui.saveStatus);
+  const hasUnsavedChanges = useAppSelector((s) => s.ui.hasUnsavedChanges);
+  const isLoading = useAppSelector((s) => s.ui.isLoading); // нужно добавить в uiSlice
   const currentDoc = documents.find((d) => d.id === activeDocId);
-  const currentRows = currentDoc?.rows ?? 0;
-  const currentCols = currentDoc?.cols ?? 0;
 
+  // Загрузка документов при старте
   useEffect(() => {
-    localStorage.setItem('spreadsheet_docs', JSON.stringify(documents));
-  }, [documents]);
+    dispatch(fetchDocuments());
+  }, [dispatch]);
 
+  // Блокировка закрытия страницы при несохранённых изменениях
   useEffect(() => {
-    if (activeDocId && currentDoc) {
-      setMatrixData(currentDoc.matrixData);
-    }
-  }, [activeDocId, currentDoc]);
-
-  const saveToApi = useCallback(async (docId: string, data: SpreadsheetData) => {
-    setSaveStatus('Сохранение...');
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setSaveStatus('Сохранено');
-      setHasUnsavedChanges(false);
-    } catch (error) {
-      console.error(error);
-      setSaveStatus('Ошибка сохранения');
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeDocId && Object.keys(matrixData).length > 0) {
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === activeDocId
-            ? { ...doc, updatedAt: new Date().toISOString(), matrixData }
-            : doc
-        )
-      );
-      if (skipNextSaveRef.current) {
-        skipNextSaveRef.current = false;
-        return;
-      }
-      setHasUnsavedChanges(true);
-      setSaveStatus('Сохранение...');
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        saveToApi(activeDocId, matrixData);
-      }, 500);
-    }
-  }, [matrixData, activeDocId, saveToApi]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handler = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('unload', handler);
   }, [hasUnsavedChanges]);
 
+  // Глобальные горячие клавиши
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (activeDocId) dispatch(saveActiveDocument());
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [activeDocId, dispatch]);
+
+  // Обработчики документов
   const handleCreateDocument = (title: string, rows: number, cols: number) => {
-    const newDoc: DocumentItem = {
-      id: crypto.randomUUID(),
-      title,
-      rows,
-      cols,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      matrixData: createEmptyData(rows, cols, alphabet),
-    };
-    setDocuments((prev) => [newDoc, ...prev]);
-  };
-
-  const handleSelectDocument = (id: string) => {
-    setActiveDocId(id);
-    setScreen('spreadsheet');
-    setActiveCellId(null);
-    setSelectedRange(null);
-    setEditingCellId(null);
-    setLastClickedCell(null);
-    skipNextSaveRef.current = true;
-    setSaveStatus('Сохранено');
-    setHasUnsavedChanges(false);
-  };
-
-  const handleDeleteDocument = (id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
-    if (activeDocId === id) {
-      setActiveDocId(null);
-      setScreen('dashboard');
-      setMatrixData({});
-    }
-  };
-
-  const handleRenameDocument = useCallback((id: string, newTitle: string) => {
-    setDocuments((prev) =>
-      prev.map((doc) =>
-        doc.id === id ? { ...doc, title: newTitle, updatedAt: new Date().toISOString() } : doc
-      )
-    );
-  }, []);
-
-  const handleSave = useCallback((cellId: string, value: string) => {
-    setMatrixData((prev) => {
-      const updated = {
-        ...prev,
-        [cellId]: {
-          id: cellId,
-          entValue: value,
-          dispValue: prev[cellId]?.dispValue || '',
-        },
-      };
-      return recalculateTable(updated);
+    dispatch(createNewDocument({ title, rows, cols })).then((action) => {
+      if (createNewDocument.fulfilled.match(action)) {
+        dispatch(switchDocument(action.payload.id));
+      }
     });
-    setEditingCellId(null);
-  }, []);
+  };
+  const handleSelectDocument = (id: string) => dispatch(switchDocument(id));
+  const handleDeleteDocument = (id: string) => dispatch(deleteDocumentById(id));
+  const handleRenameDocument = (id: string, newTitle: string) => dispatch(renameDocument({ id, newTitle }));
+  const handleDuplicateDocument = (id: string) => dispatch(duplicateDocument(id));
+  const handleImportDocument = (doc: DocumentItem) => dispatch(importDocument(doc));
 
-  const handleDuplicateDocument = useCallback((id: string) => {
-    const originalDoc = documents.find(d => d.id === id);
-    if (!originalDoc) return;
-    const newTitle = `Копия ${originalDoc.title}`;
-    const newDoc: DocumentItem = {
-      id: crypto.randomUUID(),
-      title: newTitle,
-      rows: originalDoc.rows,
-      cols: originalDoc.cols,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      matrixData: JSON.parse(JSON.stringify(originalDoc.matrixData)),
-    };
-    setDocuments(prev => [newDoc, ...prev]);
-  }, [documents]);
-
-  const handleImportDocument = useCallback((doc: DocumentItem) => {
-    setDocuments(prev => [doc, ...prev]);
-    setActiveDocId(doc.id);
-    setScreen('spreadsheet');
-    setMatrixData(doc.matrixData);
-    setActiveCellId(null);
-    setSelectedRange(null);
-    setEditingCellId(null);
-    setLastClickedCell(null);
-    skipNextSaveRef.current = true;
-    setSaveStatus('Сохранено');
-    setHasUnsavedChanges(false);
-  }, []);
-
-  const startEditing = useCallback((cellId: string, currentValue: string) => {
-    setEditingCellId(cellId);
-    setInputValue(currentValue);
-  }, []);
-
-  const handleCellClick = useCallback((cellId: string, e: React.MouseEvent) => {
-    const clickedCoords = cellIdToCoords(cellId);
-    if (e.shiftKey && lastClickedCell) {
-      const startCoords = cellIdToCoords(lastClickedCell);
-      setSelectedRange({
-        start: startCoords,
-        end: clickedCoords,
-      });
-      setActiveCellId(cellId);
-    } else if (!e.shiftKey) {
-      setSelectedRange({
-        start: clickedCoords,
-        end: clickedCoords,
-      });
-      setActiveCellId(cellId);
-      setLastClickedCell(cellId);
-    }
-  }, [lastClickedCell]);
-
+  // Экспорт CSV/JSON
   const exportToCSV = () => {
     if (!currentDoc) return;
-    const { rows, cols, matrixData } = currentDoc;
+    const { rows, cols, matrixData, title } = currentDoc;
     const csvRows: string[] = [];
     for (let r = 0; r < rows; r++) {
       const rowData: string[] = [];
       for (let c = 0; c < cols; c++) {
-        const cellId = `${alphabet[c]}${r + 1}`;
-        let value = matrixData[cellId]?.entValue || '';
+        let value = matrixData[`${alphabet[c]}${r + 1}`]?.entValue || '';
         if (value.includes(',') || value.includes('"') || value.includes('\n')) {
           value = `"${value.replace(/"/g, '""')}"`;
         }
@@ -475,11 +343,11 @@ export default function App() {
       }
       csvRows.push(rowData.join(','));
     }
-    const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', `${currentDoc.title}.csv`);
+    link.setAttribute('download', `${title}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -488,71 +356,22 @@ export default function App() {
 
   const exportToJSON = () => {
     if (!currentDoc) return;
-    const exportDoc = {
-      title: currentDoc.title,
-      rows: currentDoc.rows,
-      cols: currentDoc.cols,
-      matrixData: currentDoc.matrixData,
-      createdAt: currentDoc.createdAt,
-      updatedAt: currentDoc.updatedAt,
-    };
-    const jsonStr = JSON.stringify(exportDoc, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const { title, rows, cols, matrixData, createdAt, updatedAt } = currentDoc;
+    const exportDoc = { title, rows, cols, matrixData, createdAt, updatedAt };
+    const blob = new Blob([JSON.stringify(exportDoc, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', `${currentDoc.title}.json`);
+    link.setAttribute('download', `${title}.json`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        if (activeDocId) {
-          e.preventDefault();
-          if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-          saveToApi(activeDocId, matrixData);
-        }
-        return;
-      }
-      if (editingCellId || screen !== 'spreadsheet') return;
-      if ((e.key === 'Enter' || e.key === 'F2') && activeCellId) {
-        e.preventDefault();
-        startEditing(activeCellId, matrixData[activeCellId]?.entValue || '');
-        return;
-      }
-      if (activeCellId && currentRows > 0 && currentCols > 0) {
-        const coords = cellIdToCoords(activeCellId);
-        let newRow = coords.row;
-        let newCol = coords.col;
-        if (e.key === 'ArrowUp') newRow = Math.max(0, coords.row - 1);
-        if (e.key === 'ArrowDown') newRow = Math.min(currentRows - 1, coords.row + 1);
-        if (e.key === 'ArrowLeft') newCol = Math.max(0, coords.col - 1);
-        if (e.key === 'ArrowRight') newCol = Math.min(currentCols - 1, coords.col + 1);
-        if (newRow !== coords.row || newCol !== coords.col) {
-          e.preventDefault();
-          const newCellId = coordsToCellId({ row: newRow, col: newCol });
-          setActiveCellId(newCellId);
-          setSelectedRange({
-            start: { row: newRow, col: newCol },
-            end: { row: newRow, col: newCol },
-          });
-          setLastClickedCell(newCellId);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [activeCellId, editingCellId, startEditing, screen, currentRows, currentCols, matrixData, activeDocId, saveToApi]);
-
-  useEffect(() => {
-    if (editingCellId && editInputRef.current) {
-      editInputRef.current.focus();
-    }
-  }, [editingCellId]);
+  if (isLoading) {
+    return <div style={{ padding: '20px' }}>Загрузка документов...</div>;
+  }
 
   if (screen === 'dashboard') {
     return (
@@ -568,12 +387,16 @@ export default function App() {
     );
   }
 
-  if (!currentDoc) return null;
+  if (!currentDoc) {
+    // Если активного документа нет, возвращаем на дашборд
+    dispatch(setScreen('dashboard'));
+    return null;
+  }
 
   return (
     <div className="app-container">
       <div className="table-toolbar">
-        <button className="btn-back" onClick={() => setScreen('dashboard')}>
+        <button className="btn-back" onClick={() => dispatch(setScreen('dashboard'))}>
           ⬅ На главную
         </button>
         <span className="current-doc-title">{currentDoc.title}</span>
@@ -585,51 +408,32 @@ export default function App() {
           style={{
             marginLeft: '15px',
             fontSize: '14px',
-            color: saveStatus === 'Ошибка сохранения' ? '#d32f2f' : '#888',
+            color: saveStatus === 'error' ? '#d32f2f' : '#888',
           }}
         >
-          {saveStatus}
+          {saveStatus === 'saving' && 'Сохранение...'}
+          {saveStatus === 'saved' && 'Сохранено'}
+          {saveStatus === 'error' && 'Ошибка сохранения'}
         </span>
       </div>
 
       <div className="formula-bar">
-        <div className="active-id-box">{activeCellId ?? ''}</div>
+        <div className="active-id-box">{activeDocId ?? ''}</div>
         <input
           type="text"
           className="formula-input"
-          value={activeCellId ? matrixData[activeCellId]?.entValue || '' : ''}
-          disabled={!activeCellId}
+          value={activeDocId ? matrixData[activeDocId]?.entValue || '' : ''}
+          disabled={!activeDocId}
           placeholder="Содержимое активной ячейки..."
           onChange={(e) => {
-            if (activeCellId) {
-              handleSave(activeCellId, e.target.value);
-              setInputValue(e.target.value);
+            if (activeDocId) {
+              dispatch(updateCellData({ cellId: activeDocId, entValue: e.target.value }));
             }
           }}
         />
       </div>
 
-      <SpreadsheetTable
-        key={activeDocId}
-        matrixData={matrixData}
-        setMatrixData={setMatrixData}
-        rows={currentRows}
-        cols={currentCols}
-        activeCellId={activeCellId}
-        setActiveCellId={setActiveCellId}
-        editingCellId={editingCellId}
-        setEditingCellId={setEditingCellId}
-        inputValue={inputValue}
-        setInputValue={setInputValue}
-        selectedRange={selectedRange}
-        setSelectedRange={setSelectedRange}
-        lastClickedCell={lastClickedCell}
-        setLastClickedCell={setLastClickedCell}
-        handleSave={handleSave}
-        startEditing={startEditing}
-        handleCellClick={handleCellClick}
-        editInputRef={editInputRef}
-      />
+      <SpreadsheetTable />
     </div>
   );
 }
