@@ -27,7 +27,6 @@ const pushToHistory = (state: SpreadsheetState) => {
   state.future = [];
 };
 
-// Thunks для работы со строками/столбцами
 export const addRowThunk = createAsyncThunk(
   'spreadsheet/addRow',
   async ({ rowIndex, totalCols, alphabet }: { rowIndex: number; totalCols: number; alphabet: string[] }, { getState }) => {

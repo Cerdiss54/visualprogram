@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import documentsReducer, {
   deleteDocumentById,
   setActiveDocId,
@@ -7,6 +7,14 @@ import documentsReducer, {
   renameDocument,
   switchDocument,
 } from '@/store/slices/documentsSlice';
+
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+vi.stubGlobal('localStorage', localStorageMock);
 
 describe('documents slice', () => {
   const initialState = {
