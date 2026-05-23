@@ -10,6 +10,8 @@ import {
   deleteRowThunk,
   addColumnThunk,
   deleteColumnThunk,
+  undo,
+  redo,
 } from '@/store/slices/spreadsheetSlice';
 import {
   switchDocument,
@@ -22,7 +24,7 @@ import {
   saveActiveDocument,
 } from '@/store/slices/documentsSlice';
 import { setScreen, setHasUnsavedChanges, setSaveStatus } from '@/store/slices/uiSlice';
-import { CellCoords, SelectedRange, DocumentItem, ContextMenuState } from '@/types/spreadsheet';
+import { CellCoords, SelectedRange, DocumentItem} from '@/types/spreadsheet';
 import { useTableResize } from '@/functions/tableResize';
 import '@/App.css';
 
@@ -48,9 +50,6 @@ const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => 
   return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
 };
 
-// ----------------------------------------------------------------------
-// Компонент таблицы (внутри App)
-// ----------------------------------------------------------------------
 const SpreadsheetTable: React.FC = () => {
   const dispatch = useAppDispatch();
   const matrixData = useAppSelector((s) => s.spreadsheet.matrixData);
@@ -116,20 +115,18 @@ const SpreadsheetTable: React.FC = () => {
     closeContextMenu();
   };
 
-  const handleColumnMouseDown = (colIndex: number, e: React.MouseEvent<HTMLTableHeaderCellElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (e.clientX >= rect.right - 5) {
-      e.preventDefault();
-      startResizeColumn(colIndex, e.clientX, columnWidths[colIndex]);
-    }
-  };
-  const handleRowMouseDown = (rowIndex: number, e: React.MouseEvent<HTMLTableCellElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (e.clientY >= rect.bottom - 5) {
-      e.preventDefault();
-      startResizeRow(rowIndex, e.clientY, rowHeights[rowIndex]);
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && activeCellId && !editingCellId) {
+        if (document.activeElement?.tagName === 'INPUT') return;
+        e.preventDefault();
+        const cell = matrixData[activeCellId];
+        startEditing(activeCellId, cell?.entValue ?? '');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCellId, editingCellId, matrixData, startEditing]);
 
   useEffect(() => {
     if (contextMenu) {
@@ -162,9 +159,16 @@ const SpreadsheetTable: React.FC = () => {
                   className="sticky-col-header"
                   style={{ width: columnWidths[colIdx], position: 'relative' }}
                   onContextMenu={(e) => openContextMenu(e, 'column', colIdx)}
-                  onMouseDown={(e) => handleColumnMouseDown(colIdx, e)}
                 >
                   {letter}
+                  <div
+                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '5px', cursor: 'col-resize', zIndex: 1 }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      startResizeColumn(colIdx, e.clientX, columnWidths[colIdx]);
+                    }}
+                  />
                 </th>
               ))}
             </tr>
@@ -179,9 +183,16 @@ const SpreadsheetTable: React.FC = () => {
                     className="sticky-row-header"
                     style={{ height: rowHeight, position: 'relative' }}
                     onContextMenu={(e) => openContextMenu(e, 'row', rIdx)}
-                    onMouseDown={(e) => handleRowMouseDown(rIdx, e)}
                   >
                     {rowNum}
+                    <div
+                      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '5px', cursor: 'row-resize', zIndex: 1 }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startResizeRow(rIdx, e.clientY, rowHeights[rIdx]);
+                      }}
+                    />
                   </td>
                   {alphabet.slice(0, cols).map((letter) => {
                     const cellId = `${letter}${rowNum}`;
@@ -270,26 +281,22 @@ const SpreadsheetTable: React.FC = () => {
   );
 };
 
-// ----------------------------------------------------------------------
-// Главный компонент App
-// ----------------------------------------------------------------------
 export default function App() {
   const dispatch = useAppDispatch();
   const screen = useAppSelector((s) => s.ui.screen);
   const documents = useAppSelector((s) => s.documents.list);
   const activeDocId = useAppSelector((s) => s.documents.activeDocId);
+  const activeCellId = useAppSelector((s) => s.spreadsheet.activeCellId);
   const matrixData = useAppSelector((s) => s.spreadsheet.matrixData);
   const saveStatus = useAppSelector((s) => s.ui.saveStatus);
   const hasUnsavedChanges = useAppSelector((s) => s.ui.hasUnsavedChanges);
   const isLoading = useAppSelector((s) => s.ui.isLoading); // нужно добавить в uiSlice
   const currentDoc = documents.find((d) => d.id === activeDocId);
 
-  // Загрузка документов при старте
   useEffect(() => {
     dispatch(fetchDocuments());
   }, [dispatch]);
 
-  // Блокировка закрытия страницы при несохранённых изменениях
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
@@ -301,19 +308,23 @@ export default function App() {
     return () => window.removeEventListener('unload', handler);
   }, [hasUnsavedChanges]);
 
-  // Глобальные горячие клавиши
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (activeDocId) dispatch(saveActiveDocument());
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        dispatch(undo());
+      } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        dispatch(redo());
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [activeDocId, dispatch]);
 
-  // Обработчики документов
   const handleCreateDocument = (title: string, rows: number, cols: number) => {
     dispatch(createNewDocument({ title, rows, cols })).then((action) => {
       if (createNewDocument.fulfilled.match(action)) {
@@ -327,7 +338,6 @@ export default function App() {
   const handleDuplicateDocument = (id: string) => dispatch(duplicateDocument(id));
   const handleImportDocument = (doc: DocumentItem) => dispatch(importDocument(doc));
 
-  // Экспорт CSV/JSON
   const exportToCSV = () => {
     if (!currentDoc) return;
     const { rows, cols, matrixData, title } = currentDoc;
@@ -388,7 +398,6 @@ export default function App() {
   }
 
   if (!currentDoc) {
-    // Если активного документа нет, возвращаем на дашборд
     dispatch(setScreen('dashboard'));
     return null;
   }
@@ -418,16 +427,16 @@ export default function App() {
       </div>
 
       <div className="formula-bar">
-        <div className="active-id-box">{activeDocId ?? ''}</div>
+        <div className="active-id-box">{activeCellId ?? ''}</div>
         <input
           type="text"
           className="formula-input"
-          value={activeDocId ? matrixData[activeDocId]?.entValue || '' : ''}
-          disabled={!activeDocId}
+          value={activeCellId ? matrixData[activeCellId]?.entValue || '' : ''}
+          disabled={!activeCellId}
           placeholder="Содержимое активной ячейки..."
           onChange={(e) => {
-            if (activeDocId) {
-              dispatch(updateCellData({ cellId: activeDocId, entValue: e.target.value }));
+            if (activeCellId) {
+              dispatch(updateCellData({ cellId: activeCellId, entValue: e.target.value }));
             }
           }}
         />

@@ -55,7 +55,6 @@ export default function Dashboard({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Простой CSV-парсер с учётом кавычек
   const parseCSV = (text: string): string[][] => {
     const rows: string[][] = [];
     const lines = text.split(/\r?\n/);
@@ -245,7 +244,6 @@ export default function Dashboard({
         )}
       </div>
 
-      {/* Модалка создания */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -278,7 +276,6 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Модалка удаления */}
       {deleteConfirmOpen && (
         <div className="modal-overlay" onClick={cancelDelete}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
