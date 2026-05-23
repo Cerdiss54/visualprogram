@@ -3,11 +3,11 @@ import { DocumentItem } from '@/types/spreadsheet';
 
 interface DashboardProps {
   documents: DocumentItem[];
-  onCreateDoc: (title: string, rows: number, cols: number, data?: any) => void; // опционально можно передавать данные для копирования
+  onCreateDoc: (title: string, rows: number, cols: number, data?: any) => void; 
   onSelectDoc: (id: string) => void;
   onDeleteDoc: (id: string) => void;
   onRenameDoc: (id: string, newTitle: string) => void;
-  onDuplicateDoc: (id: string) => void; // новый проп
+  onDuplicateDoc: (id: string) => void; 
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');

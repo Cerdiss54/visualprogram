@@ -9,7 +9,6 @@ export interface ContextMenuState {
   index: number;
 }
 
-// Добавление строки
 export const addRow = (
   data: SpreadsheetData,
   rowIndex: number,
@@ -43,7 +42,6 @@ export const addRow = (
   return newData;
 };
 
-// Удаление строки
 export const deleteRow = (
   data: SpreadsheetData,
   rowIndex: number,
@@ -69,7 +67,6 @@ export const deleteRow = (
   return newData;
 };
 
-// Добавление столбца
 export const addColumn = (
   data: SpreadsheetData,
   colIndex: number,
@@ -104,7 +101,6 @@ export const addColumn = (
   return newData;
 };
 
-// Удаление столбца
 export const deleteColumn = (
   data: SpreadsheetData,
   colIndex: number,
@@ -134,7 +130,6 @@ export const deleteColumn = (
   return newData;
 };
 
-// Хук для управления контекстным меню и операциями над строками/столбцами
 export const useTableEditor = (
   matrixData: SpreadsheetData,
   setMatrixData: React.Dispatch<React.SetStateAction<SpreadsheetData>>,
