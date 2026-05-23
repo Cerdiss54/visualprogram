@@ -11,6 +11,42 @@
           "wind": { "speed": 5 },
           "clouds": { "all": 0 },
           "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712138400,
+          "dt_txt": "2024-04-03 12:00:00",
+          "main": { "temp": 22, "temp_min": 20, "temp_max": 24, "humidity": 65, "pressure": 1015 },
+          "weather": [{ "icon": "02d", "description": "few clouds" }],
+          "wind": { "speed": 4 },
+          "clouds": { "all": 20 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712224800,
+          "dt_txt": "2024-04-04 12:00:00",
+          "main": { "temp": 18, "temp_min": 16, "temp_max": 20, "humidity": 90, "pressure": 1008 },
+          "weather": [{ "icon": "10d", "description": "rain" }],
+          "wind": { "speed": 6 },
+          "clouds": { "all": 100 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712311200,
+          "dt_txt": "2024-04-05 12:00:00",
+          "main": { "temp": 20, "temp_min": 18, "temp_max": 22, "humidity": 70, "pressure": 1011 },
+          "weather": [{ "icon": "04d", "description": "broken clouds" }],
+          "wind": { "speed": 3 },
+          "clouds": { "all": 75 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712397600,
+          "dt_txt": "2024-04-06 12:00:00",
+          "main": { "temp": 25, "temp_min": 22, "temp_max": 26, "humidity": 60, "pressure": 1013 },
+          "weather": [{ "icon": "01d", "description": "clear sky" }],
+          "wind": { "speed": 2 },
+          "clouds": { "all": 10 },
+          "sys": { "pod": "d" }
         }
       ]
     },
@@ -30,6 +66,42 @@
           "wind": { "speed": 3 },
           "clouds": { "all": 20 },
           "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712138400,
+          "dt_txt": "2024-04-03 12:00:00",
+          "main": { "temp": 12, "temp_min": 8, "temp_max": 14, "humidity": 75, "pressure": 1012 },
+          "weather": [{ "icon": "04d", "description": "broken clouds" }],
+          "wind": { "speed": 5 },
+          "clouds": { "all": 80 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712224800,
+          "dt_txt": "2024-04-04 12:00:00",
+          "main": { "temp": 9, "temp_min": 5, "temp_max": 11, "humidity": 85, "pressure": 1005 },
+          "weather": [{ "icon": "09d", "description": "shower rain" }],
+          "wind": { "speed": 7 },
+          "clouds": { "all": 100 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712311200,
+          "dt_txt": "2024-04-05 12:00:00",
+          "main": { "temp": 11, "temp_min": 7, "temp_max": 13, "humidity": 65, "pressure": 1018 },
+          "weather": [{ "icon": "01d", "description": "clear sky" }],
+          "wind": { "speed": 4 },
+          "clouds": { "all": 0 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712397600,
+          "dt_txt": "2024-04-06 12:00:00",
+          "main": { "temp": 16, "temp_min": 12, "temp_max": 19, "humidity": 60, "pressure": 1015 },
+          "weather": [{ "icon": "02d", "description": "few clouds" }],
+          "wind": { "speed": 3 },
+          "clouds": { "all": 30 },
+          "sys": { "pod": "d" }
         }
       ]
     },
@@ -48,6 +120,42 @@
           "weather": [{ "icon": "03d", "description": "scattered clouds" }],
           "wind": { "speed": 4 },
           "clouds": { "all": 40 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712138400,
+          "dt_txt": "2024-04-03 12:00:00",
+          "main": { "temp": 15, "temp_min": 12, "temp_max": 17, "humidity": 80, "pressure": 1005 },
+          "weather": [{ "icon": "10d", "description": "rain" }],
+          "wind": { "speed": 6 },
+          "clouds": { "all": 90 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712224800,
+          "dt_txt": "2024-04-04 12:00:00",
+          "main": { "temp": 12, "temp_min": 10, "temp_max": 14, "humidity": 85, "pressure": 1008 },
+          "weather": [{ "icon": "04d", "description": "broken clouds" }],
+          "wind": { "speed": 5 },
+          "clouds": { "all": 75 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712311200,
+          "dt_txt": "2024-04-05 12:00:00",
+          "main": { "temp": 16, "temp_min": 13, "temp_max": 18, "humidity": 60, "pressure": 1015 },
+          "weather": [{ "icon": "01d", "description": "clear sky" }],
+          "wind": { "speed": 3 },
+          "clouds": { "all": 10 },
+          "sys": { "pod": "d" }
+        },
+        {
+          "dt": 1712397600,
+          "dt_txt": "2024-04-06 12:00:00",
+          "main": { "temp": 21, "temp_min": 18, "temp_max": 23, "humidity": 55, "pressure": 1012 },
+          "weather": [{ "icon": "02d", "description": "few clouds" }],
+          "wind": { "speed": 2 },
+          "clouds": { "all": 20 },
           "sys": { "pod": "d" }
         }
       ]
