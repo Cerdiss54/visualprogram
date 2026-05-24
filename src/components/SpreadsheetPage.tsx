@@ -312,18 +312,19 @@ export default function SpreadsheetPage() {
   }, [hasUnsavedChanges, navigate]);
 
   useEffect(() => {
-    if (!isLoading && documentId && documentId !== activeDocId) {
+    if (!isLoading && documentId && documentId !== activeDocId && currentDoc) {
       dispatch(switchDocument(documentId))
         .unwrap()
-        .catch(() => navigate('/404', { replace: true }));
+        .catch(console.error);
     }
-  }, [documentId, activeDocId, isLoading, dispatch, navigate]);
+  }, [documentId, activeDocId, isLoading, dispatch, currentDoc]);
 
   useEffect(() => {
-    if (!isLoading && documentId && !currentDoc && activeDocId === documentId) {
-      navigate('/404', { replace: true });
+    if (!isLoading && documentId && !currentDoc) {
+      const timer = setTimeout(() => navigate('/404', { replace: true }), 500);
+      return () => clearTimeout(timer);
     }
-  }, [documentId, currentDoc, activeDocId, isLoading, navigate]);
+  }, [documentId, currentDoc, isLoading, navigate]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -394,7 +395,7 @@ export default function SpreadsheetPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (isLoading || (documentId && !currentDoc && activeDocId !== documentId)) {
+  if (isLoading || (documentId && !currentDoc)) {
     return <div style={{ padding: '20px' }}>Загрузка таблицы...</div>;
   }
   if (!currentDoc) return null;
