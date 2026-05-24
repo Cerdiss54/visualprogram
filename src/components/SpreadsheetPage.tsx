@@ -13,7 +13,7 @@ import {
   undo,
   redo,
 } from '@/store/slices/spreadsheetSlice';
-import { switchDocument, saveActiveDocument } from '@/store/slices/documentsSlice';
+import { saveActiveDocument, switchDocument } from '@/store/slices/documentsSlice';
 import { CellCoords, SelectedRange } from '@/types/spreadsheet';
 import { useTableResize } from '@/functions/tableResize';
 import { ContextMenuState } from '@/functions/tableEditor';
@@ -56,15 +56,16 @@ const SpreadsheetTable: React.FC = () => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  const { columnWidths, rowHeights, startResizeColumn, startResizeRow, isResizing } = useTableResize(cols, rows);
+
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: rows,
     getScrollElement: () => parentRef.current,
     estimateSize: (i) => rowHeights[i] || 24,
     overscan: 10,
+    enabled: rows > 0,
   });
-
-  const { columnWidths, rowHeights, startResizeColumn, startResizeRow, isResizing } = useTableResize(cols, rows);
 
   const handleSave = useCallback((cellId: string, value: string) => {
     dispatch(updateCellData({ cellId, entValue: value }));
@@ -141,7 +142,7 @@ const SpreadsheetTable: React.FC = () => {
     if (editingCellId && editInputRef.current) editInputRef.current.focus();
   }, [editingCellId]);
 
-  if (!currentDoc) return null;
+  if (!currentDoc || rows === 0 || cols === 0) return null;
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
@@ -175,7 +176,11 @@ const SpreadsheetTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {paddingTop > 0 && <tr><td style={{ height: `${paddingTop}px`, padding: 0, border: 0 }} colSpan={cols + 1} /></tr>}
+            {paddingTop > 0 && (
+              <tr>
+                <td style={{ height: `${paddingTop}px`, padding: 0, border: 0 }} colSpan={cols + 1} />
+              </tr>
+            )}
             {virtualRows.map((virtualRow) => {
               const rIdx = virtualRow.index;
               const rowNum = rIdx + 1;
@@ -240,7 +245,11 @@ const SpreadsheetTable: React.FC = () => {
                 </tr>
               );
             })}
-            {paddingBottom > 0 && <tr><td style={{ height: `${paddingBottom}px`, padding: 0, border: 0 }} colSpan={cols + 1} /></tr>}
+            {paddingBottom > 0 && (
+              <tr>
+                <td style={{ height: `${paddingBottom}px`, padding: 0, border: 0 }} colSpan={cols + 1} />
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -292,11 +301,29 @@ export default function SpreadsheetPage() {
 
   const currentDoc = documents.find((d) => d.id === documentId);
 
+  const navigateWithConfirm = useCallback((to: string) => {
+    if (hasUnsavedChanges) {
+      if (window.confirm('У вас есть несохранённые изменения. Покинуть страницу?')) {
+        navigate(to);
+      }
+    } else {
+      navigate(to);
+    }
+  }, [hasUnsavedChanges, navigate]);
+
   useEffect(() => {
     if (!isLoading && documentId && documentId !== activeDocId) {
-      dispatch(switchDocument(documentId)).catch(() => navigate('/404'));
+      dispatch(switchDocument(documentId))
+        .unwrap()
+        .catch(() => navigate('/404', { replace: true }));
     }
   }, [documentId, activeDocId, isLoading, dispatch, navigate]);
+
+  useEffect(() => {
+    if (!isLoading && documentId && !currentDoc && activeDocId === documentId) {
+      navigate('/404', { replace: true });
+    }
+  }, [documentId, currentDoc, activeDocId, isLoading, navigate]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -306,7 +333,7 @@ export default function SpreadsheetPage() {
       }
     };
     window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('unload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
@@ -367,30 +394,46 @@ export default function SpreadsheetPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (isLoading || activeDocId !== documentId) return <div style={{ padding: '20px' }}>Загрузка таблицы...</div>;
+  if (isLoading || (documentId && !currentDoc && activeDocId !== documentId)) {
+    return <div style={{ padding: '20px' }}>Загрузка таблицы...</div>;
+  }
   if (!currentDoc) return null;
 
+  const Breadcrumbs = () => (
+    <div style={{ fontSize: '14px', padding: '8px 16px', background: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
+      <span
+        style={{ cursor: 'pointer', color: '#007bff' }}
+        onClick={() => navigateWithConfirm('/dashboard')}
+      >
+        Мои документы
+      </span>
+      {' → '}
+      <span style={{ fontWeight: 'bold' }}>{currentDoc.title}</span>
+    </div>
+  );
+
   return (
-    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="table-toolbar">
-        <button className="btn-back" onClick={() => navigate('/dashboard')}>⬅ На главную</button>
-        <span className="current-doc-title">{currentDoc.title}</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Breadcrumbs />
+      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '12px', borderBottom: '1px solid #ddd' }}>
+        <button onClick={() => navigateWithConfirm('/dashboard')}>⬅ На главную</button>
+        <span style={{ flex: 1, fontWeight: 'bold' }}>{currentDoc.title}</span>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={exportToCSV}>Экспорт CSV</button>
           <button onClick={exportToJSON}>Экспорт JSON</button>
         </div>
-        <span style={{ marginLeft: '15px', fontSize: '14px', color: saveStatus === 'error' ? '#d32f2f' : '#888' }}>
+        <span style={{ fontSize: '14px', color: saveStatus === 'error' ? '#d32f2f' : '#888' }}>
           {saveStatus === 'saving' && 'Сохранение...'}
           {saveStatus === 'saved' && 'Сохранено'}
           {saveStatus === 'error' && 'Ошибка сохранения'}
         </span>
       </div>
 
-      <div className="formula-bar">
-        <div className="active-id-box">{activeCellId ?? ''}</div>
+      <div style={{ display: 'flex', padding: '4px 16px', gap: '8px', borderBottom: '1px solid #ddd' }}>
+        <div style={{ width: '60px', fontWeight: 'bold' }}>{activeCellId ?? ''}</div>
         <input
           type="text"
-          className="formula-input"
+          style={{ flex: 1 }}
           value={activeCellId ? matrixData[activeCellId]?.entValue || '' : ''}
           disabled={!activeCellId}
           placeholder="Содержимое активной ячейки..."
