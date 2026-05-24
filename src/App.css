@@ -385,3 +385,28 @@
 .modal-row-inputs input {
   margin: 0 !important;
 }
+
+.formatting-toolbar button {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 32px;
+  height: 32px;
+}
+.formatting-toolbar button:hover {
+  background: #e0e0e0;
+}
+.formatting-toolbar input[type="color"] {
+  border: 1px solid #ccc;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.formatting-toolbar select {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}

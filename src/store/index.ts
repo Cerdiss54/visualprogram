@@ -3,6 +3,7 @@ import spreadsheetReducer from './slices/spreadsheetSlice';
 import documentsReducer from './slices/documentsSlice';
 import uiReducer from './slices/uiSlice';
 import authReducer from './slices/authSlice';
+import cellStylesReducer from './slices/cellStylesSlice';
 import { debounceMiddleware } from './middleware/debounceMiddleware';
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
     documents: documentsReducer,
     ui: uiReducer,
     auth: authReducer,
+    cellStyles: cellStylesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(debounceMiddleware),

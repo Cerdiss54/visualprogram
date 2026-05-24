@@ -6,6 +6,10 @@ interface User {
   email: string;
 }
 
+interface StoredUser extends User {
+  passwordHash: string;
+}
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
@@ -13,6 +17,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   isAuthInitialized: boolean;
+  registeredAt: string | null;
 }
 
 const initialState: AuthState = {
@@ -22,6 +27,15 @@ const initialState: AuthState = {
   isLoading: false,
   error: null,
   isAuthInitialized: false,
+  registeredAt: null,
+};
+
+const getMockUsers = (): Record<string, StoredUser> => {
+  return JSON.parse(localStorage.getItem('mockUsers') || '{}');
+};
+
+const saveMockUsers = (users: Record<string, StoredUser>) => {
+  localStorage.setItem('mockUsers', JSON.stringify(users));
 };
 
 export const refreshAccessToken = createAsyncThunk(
@@ -33,13 +47,13 @@ export const refreshAccessToken = createAsyncThunk(
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       const currentEmail = localStorage.getItem('currentUserEmail');
-      const users = JSON.parse(localStorage.getItem('mockUsers') || '{}');
+      const users = getMockUsers();
       const user = currentEmail && users[currentEmail] 
-        ? users[currentEmail] 
+        ? { id: users[currentEmail].id, name: users[currentEmail].name, email: users[currentEmail].email }
         : { id: '1', name: 'Пользователь', email: 'user@example.com' };
       return { 
         accessToken: 'mock_new_access_token',
-        user: user as User
+        user
       };
     } catch (error: unknown) {
       localStorage.removeItem('refreshToken');
@@ -50,47 +64,96 @@ export const refreshAccessToken = createAsyncThunk(
 
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: Record<string, string>, { rejectWithValue }) => {
+  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
-      if (credentials.email && credentials.password.length >= 8) {
-        const users = JSON.parse(localStorage.getItem('mockUsers') || '{}');
-        let user = users[credentials.email];
-        if (!user) {
-          const nextId = String(Object.keys(users).length + 1);
-          user = { id: nextId, name: credentials.email.split('@')[0], email: credentials.email };
-          users[credentials.email] = user;
-          localStorage.setItem('mockUsers', JSON.stringify(users));
-        }
-        localStorage.setItem('refreshToken', 'mock_refresh_token');
-        localStorage.setItem('currentUserEmail', user.email);
-        return { 
-          user: user as User,
-          accessToken: 'mock_access_token' 
-        };
+      const { email, password } = credentials;
+      const users = getMockUsers();
+      const userRecord = users[email];
+      
+      if (!userRecord) {
+        return rejectWithValue('Пользователь не найден');
       }
-      throw new Error('Неверный email или пароль');
+      
+      if (userRecord.passwordHash !== password) {
+        return rejectWithValue('Неверный пароль');
+      }
+      
+      localStorage.setItem('refreshToken', 'mock_refresh_token');
+      localStorage.setItem('currentUserEmail', email);
+      
+      const user = { id: userRecord.id, name: userRecord.name, email: userRecord.email };
+      return { user, accessToken: 'mock_access_token' };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Ошибка');
+      return rejectWithValue(error instanceof Error ? error.message : 'Ошибка входа');
     }
   }
 );
 
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (userData: Record<string, string>, { rejectWithValue }) => {
+  async (userData: { name: string; email: string; password: string }, { rejectWithValue }) => {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const users = JSON.parse(localStorage.getItem('mockUsers') || '{}');
+      const { name, email, password } = userData;
+      const users = getMockUsers();
+      
+      if (users[email]) {
+        return rejectWithValue('Пользователь с таким email уже существует');
+      }
+      
       const nextId = String(Object.keys(users).length + 1);
-      const newUser = { id: nextId, name: userData.name, email: userData.email };
-      users[userData.email] = newUser;
-      localStorage.setItem('mockUsers', JSON.stringify(users));
-      return newUser as User;
+      const newUser: StoredUser = {
+        id: nextId,
+        name,
+        email,
+        passwordHash: password,
+      };
+      users[email] = newUser;
+      saveMockUsers(users);
+      
+      return { id: newUser.id, name: newUser.name, email: newUser.email };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Ошибка');
+      return rejectWithValue(error instanceof Error ? error.message : 'Ошибка регистрации');
     }
+  }
+);
+
+export const updateUserName = createAsyncThunk(
+  'auth/updateName',
+  async (newName: string, { getState, rejectWithValue }) => {
+    const state = getState() as { auth: AuthState };
+    const currentUser = state.auth.user;
+    if (!currentUser) return rejectWithValue('Не авторизован');
+    
+    const users = getMockUsers();
+    if (users[currentUser.email]) {
+      users[currentUser.email].name = newName;
+      saveMockUsers(users);
+    }
+    return { ...currentUser, name: newName };
+  }
+);
+
+export const updateUserPassword = createAsyncThunk(
+  'auth/updatePassword',
+  async ({ oldPassword, newPassword }: { oldPassword: string; newPassword: string }, { getState, rejectWithValue }) => {
+    const state = getState() as { auth: AuthState };
+    const currentUser = state.auth.user;
+    if (!currentUser) return rejectWithValue('Не авторизован');
+    
+    const users = getMockUsers();
+    const userRecord = users[currentUser.email];
+    if (!userRecord) return rejectWithValue('Пользователь не найден');
+    
+    if (userRecord.passwordHash !== oldPassword) {
+      return rejectWithValue('Неверный старый пароль');
+    }
+    
+    userRecord.passwordHash = newPassword;
+    saveMockUsers(users);
+    return true;
   }
 );
 
@@ -117,6 +180,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
         state.user = action.payload.user;
         state.isAuthInitialized = true;
+        state.registeredAt = localStorage.getItem('userRegisteredAt') || null;
       })
       .addCase(refreshAccessToken.rejected, (state) => {
         state.isLoading = false;
@@ -125,16 +189,42 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthInitialized = true;
       })
+      .addCase(loginUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
         state.accessToken = action.payload.accessToken;
         state.user = action.payload.user;
+        state.error = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.isLoading = false;
         state.error = action.payload as string;
       })
+      .addCase(registerUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.registeredAt = new Date().toISOString();
+        localStorage.setItem('userRegisteredAt', state.registeredAt);
+        state.error = null;
+      })
       .addCase(registerUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateUserName.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
+      .addCase(updateUserPassword.fulfilled, (state) => {
+      })
+      .addCase(updateUserPassword.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },
