@@ -10,15 +10,27 @@ import NotFoundPage from '@/components/NotFoundPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoginPage from '@/components/LoginPage';
 import RegisterPage from '@/components/RegisterPage';
+import { refreshAccessToken } from '@/store/slices/authSlice';
 import '@/App.css';
 
 export default function App() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const isAuthInitialized = useAppSelector((state) => state.auth.isAuthInitialized);
 
   useEffect(() => {
-    dispatch(fetchDocuments());
+    dispatch(refreshAccessToken());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchDocuments());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  if (!isAuthInitialized) {
+    return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>Инициализация сессии...</div>;
+  }
 
   return (
     <BrowserRouter>

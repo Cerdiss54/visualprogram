@@ -26,4 +26,5 @@ export interface DocumentItem {
     createdAt: string;
     updatedAt: string;
     matrixData: SpreadsheetData;
+    userId?: string;
 }

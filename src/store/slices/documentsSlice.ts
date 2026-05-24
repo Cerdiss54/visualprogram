@@ -28,11 +28,12 @@ export const fetchDocuments = createAsyncThunk('documents/fetchAll', async (_, {
 
 export const createNewDocument = createAsyncThunk(
   'documents/create',
-  async (payload: { title: string; rows: number; cols: number }) => {
-    const { title, rows, cols } = payload;
+  async (payload: { title: string; rows: number; cols: number; userId?: string }) => {
+    const { title, rows, cols, userId } = payload;
     const newDoc: DocumentItem = {
-      id: crypto.randomUUID(),
+      id: Date.now().toString(),
       title,
+      userId,
       rows,
       cols,
       createdAt: new Date().toISOString(),
@@ -53,12 +54,13 @@ export const renameDocument = createAsyncThunk(
 export const duplicateDocument = createAsyncThunk(
   'documents/duplicate',
   async (id: string, { getState }) => {
-    const state = getState() as any;
+    const state = getState() as { documents: DocumentsState };
     const original = state.documents.list.find((d: DocumentItem) => d.id === id);
     if (!original) throw new Error('Document not found');
     const newDoc: DocumentItem = {
-      id: crypto.randomUUID(),
+      id: Date.now().toString(),
       title: `Копия ${original.title}`,
+      userId: original.userId,
       rows: original.rows,
       cols: original.cols,
       createdAt: new Date().toISOString(),
@@ -74,7 +76,7 @@ export const importDocument = createAsyncThunk(
   async (doc: DocumentItem) => {
     return {
       ...doc,
-      id: crypto.randomUUID(),
+      id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -86,7 +88,7 @@ export const saveActiveDocument = createAsyncThunk(
   async (_, { getState, dispatch }) => {
     dispatch(setSaveStatus('saving'));
     await new Promise((res) => setTimeout(res, 500));
-    const state = getState() as any;
+    const state = getState() as { documents: DocumentsState, spreadsheet: { matrixData: any } };
     const activeDocId = state.documents.activeDocId;
     const currentMatrix = state.spreadsheet.matrixData;
     const docList = state.documents.list;
@@ -107,9 +109,12 @@ export const saveActiveDocument = createAsyncThunk(
 export const switchDocument = createAsyncThunk(
   'documents/switch',
   async (docId: string, { getState, dispatch }) => {
-    const state = getState() as any;
+    const state = getState() as { documents: DocumentsState, auth: { user?: { id: string } } };
     const doc = state.documents.list.find((d: DocumentItem) => d.id === docId);
     if (!doc) throw new Error('Document not found');
+    if (doc.userId && doc.userId !== state.auth.user?.id) {
+      throw new Error('403');
+    }
     dispatch(setMatrix(doc.matrixData));
     dispatch(setScreen('spreadsheet'));
     return docId;

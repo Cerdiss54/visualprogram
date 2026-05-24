@@ -57,30 +57,10 @@ export default function Dashboard({
 
   const parseCSV = (text: string): string[][] => {
     const rows: string[][] = [];
-    const lines = text.split(/\r?\n/);
+    const lines = text.split('\n');
     for (const line of lines) {
       if (line.trim() === '') continue;
-      const values: string[] = [];
-      let inQuote = false;
-      let current = '';
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-          if (inQuote && line[i+1] === '"') {
-            current += '"';
-            i++;
-          } else {
-            inQuote = !inQuote;
-          }
-        } else if (ch === ',' && !inQuote) {
-          values.push(current);
-          current = '';
-        } else {
-          current += ch;
-        }
-      }
-      values.push(current);
-      rows.push(values.map(v => v.trim()));
+      rows.push(line.split(','));
     }
     return rows;
   };
@@ -99,7 +79,7 @@ export default function Dashboard({
       if (data.length === 0) return;
       const numRows = data.length;
       const numCols = Math.max(...data.map(row => row.length));
-      const matrixData: any = {};
+      const matrixData: Record<string, any> = {};
       for (let r = 0; r < numRows; r++) {
         const row = data[r];
         for (let c = 0; c < numCols; c++) {
@@ -110,7 +90,7 @@ export default function Dashboard({
       }
       const title = file.name.replace(/\.csv$/i, '') || 'Импорт CSV';
       const newDoc: DocumentItem = {
-        id: crypto.randomUUID(),
+        id: Date.now().toString(),
         title,
         rows: numRows,
         cols: numCols,

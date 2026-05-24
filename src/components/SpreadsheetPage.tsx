@@ -14,18 +14,17 @@ import {
   redo,
 } from '@/store/slices/spreadsheetSlice';
 import { saveActiveDocument, switchDocument } from '@/store/slices/documentsSlice';
-import { CellCoords, SelectedRange } from '@/types/spreadsheet';
+import { CellCoords, SelectedRange, DocumentItem } from '@/types/spreadsheet';
 import { useTableResize } from '@/functions/tableResize';
 import { ContextMenuState } from '@/functions/tableEditor';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
 const cellIdToCoords = (id: string): CellCoords => {
-  const match = id.match(/^([A-Z]+)(\d+)$/);
-  if (!match) return { row: 0, col: 0 };
-  const col = alphabet.indexOf(match[1]);
-  const row = parseInt(match[2], 10) - 1;
+  const colLetter = id.charAt(0);
+  const row = parseInt(id.substring(1)) - 1;
+  const col = alphabet.indexOf(colLetter);
   return { row, col };
 };
 
@@ -39,14 +38,15 @@ const isCellInRange = (cellId: string, range: SelectedRange | null): boolean => 
   return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
 };
 
-const SpreadsheetTable: React.FC = () => {
+const SpreadsheetTable: React.FC = React.memo(() => {
   const dispatch = useAppDispatch();
   const matrixData = useAppSelector((s) => s.spreadsheet.matrixData);
   const activeCellId = useAppSelector((s) => s.spreadsheet.activeCellId);
   const selectedRange = useAppSelector((s) => s.spreadsheet.selectedRange);
   const lastClickedCell = useAppSelector((s) => s.spreadsheet.lastClickedCell);
+  const user = useAppSelector((s) => s.auth.user);
   const currentDoc = useAppSelector((s) =>
-    s.documents.list.find((d) => d.id === s.documents.activeDocId)
+    s.documents.list.find((d) => d.id === s.documents.activeDocId && (d as any).userId === user?.id)
   );
   const rows = currentDoc?.rows ?? 0;
   const cols = currentDoc?.cols ?? 0;
@@ -124,7 +124,7 @@ const SpreadsheetTable: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCellId, editingCellId, matrixData, startEditing]);
+  }, [activeCellId, editingCellId, matrixData]);
 
   useEffect(() => {
     if (contextMenu) {
@@ -141,6 +141,27 @@ const SpreadsheetTable: React.FC = () => {
   useEffect(() => {
     if (editingCellId && editInputRef.current) editInputRef.current.focus();
   }, [editingCellId]);
+
+  const computeValue = useCallback((val: string) => {
+    if (val && val.toUpperCase().startsWith('=SUM(')) {
+      const match = val.match(/^=SUM\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)$/i);
+      if (match) {
+        const c1 = alphabet.indexOf(match[1].toUpperCase());
+        const r1 = parseInt(match[2]) - 1;
+        const c2 = alphabet.indexOf(match[3].toUpperCase());
+        const r2 = parseInt(match[4]) - 1;
+        let sum = 0;
+        for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+          for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+            const num = parseFloat(matrixData[`${alphabet[c]}${r + 1}`]?.entValue);
+            if (!isNaN(num)) sum += num;
+          }
+        }
+        return String(sum);
+      }
+    }
+    return val;
+  }, [matrixData]);
 
   if (!currentDoc || rows === 0 || cols === 0) return null;
 
@@ -237,7 +258,7 @@ const SpreadsheetTable: React.FC = () => {
                             onBlur={() => handleSave(cellId, inputValue)}
                           />
                         ) : (
-                          <span className="cell-view-text">{cell?.dispValue ?? ''}</span>
+                          <span className="cell-view-text">{computeValue(cell?.entValue ?? '')}</span>
                         )}
                       </td>
                     );
@@ -284,14 +305,15 @@ const SpreadsheetTable: React.FC = () => {
       )}
     </>
   );
-};
+});
 
 export default function SpreadsheetPage() {
   const { documentId } = useParams<{ documentId: string }>();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const documents = useAppSelector((s) => s.documents.list);
+  const allDocuments = useAppSelector((s) => s.documents.list);
+  const user = useAppSelector((s) => s.auth.user);
   const activeDocId = useAppSelector((s) => s.documents.activeDocId);
   const activeCellId = useAppSelector((s) => s.spreadsheet.activeCellId);
   const matrixData = useAppSelector((s) => s.spreadsheet.matrixData);
@@ -299,7 +321,8 @@ export default function SpreadsheetPage() {
   const hasUnsavedChanges = useAppSelector((s) => s.ui.hasUnsavedChanges);
   const isLoading = useAppSelector((s) => s.ui.isLoading);
 
-  const currentDoc = documents.find((d) => d.id === documentId);
+  const globalDoc = allDocuments.find((d: DocumentItem) => d.id === documentId);
+  const currentDoc = globalDoc?.userId === user?.id ? globalDoc : undefined;
 
   const navigateWithConfirm = useCallback((to: string) => {
     if (hasUnsavedChanges) {
@@ -312,19 +335,32 @@ export default function SpreadsheetPage() {
   }, [hasUnsavedChanges, navigate]);
 
   useEffect(() => {
-    if (!isLoading && documentId && documentId !== activeDocId && currentDoc) {
-      dispatch(switchDocument(documentId))
-        .unwrap()
-        .catch(console.error);
+    if (!isLoading && documentId && globalDoc) {
+      if (globalDoc.userId !== user?.id) {
+        navigate('/dashboard', { replace: true });
+      } else if (globalDoc.id !== activeDocId) {
+        dispatch(switchDocument(globalDoc.id))
+          .unwrap()
+          .catch((err: unknown) => {
+            if (String(err).includes('403')) navigate('/dashboard', { replace: true });
+          });
+      }
     }
-  }, [documentId, activeDocId, isLoading, dispatch, currentDoc]);
+  }, [documentId, activeDocId, isLoading, dispatch, globalDoc, navigate, user?.id]);
 
   useEffect(() => {
-    if (!isLoading && documentId && !currentDoc) {
+    if (!isLoading && documentId && !globalDoc) {
       const timer = setTimeout(() => navigate('/404', { replace: true }), 500);
       return () => clearTimeout(timer);
     }
-  }, [documentId, currentDoc, isLoading, navigate]);
+  }, [documentId, globalDoc, isLoading, navigate]);
+
+  useEffect(() => {
+    if (hasUnsavedChanges && activeDocId) {
+      const timer = setTimeout(() => dispatch(saveActiveDocument()), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasUnsavedChanges, activeDocId, dispatch]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -339,20 +375,20 @@ export default function SpreadsheetPage() {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         if (activeDocId) dispatch(saveActiveDocument());
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      } else if (e.ctrlKey && e.key === 'z') {
         e.preventDefault();
         dispatch(undo());
-      } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+      } else if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         dispatch(redo());
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [activeDocId, dispatch]);
+  }, [activeDocId]);
 
   const exportToCSV = () => {
     if (!currentDoc) return;
@@ -361,15 +397,11 @@ export default function SpreadsheetPage() {
     for (let r = 0; r < rows; r++) {
       const rowData: string[] = [];
       for (let c = 0; c < cols; c++) {
-        let value = matrixData[`${alphabet[c]}${r + 1}`]?.entValue || '';
-        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-          value = `"${value.replace(/"/g, '""')}"`;
-        }
-        rowData.push(value);
+        rowData.push(matrixData[`${alphabet[c]}${r + 1}`]?.entValue || '');
       }
       csvRows.push(rowData.join(','));
     }
-    const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -377,7 +409,6 @@ export default function SpreadsheetPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const exportToJSON = () => {
@@ -392,10 +423,9 @@ export default function SpreadsheetPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
-  if (isLoading || (documentId && !currentDoc)) {
+  if (isLoading || (documentId && !globalDoc)) {
     return <div style={{ padding: '20px' }}>Загрузка таблицы...</div>;
   }
   if (!currentDoc) return null;

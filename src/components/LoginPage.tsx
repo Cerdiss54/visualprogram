@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAppDispatch } from '@/store/hooks';
 import { loginUser } from '@/store/slices/authSlice';
 
@@ -9,10 +9,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const validate = () => {
     setError('');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email.includes('@') || !email.includes('.')) {
       setError('Неверный формат email');
       return false;
     }
@@ -29,7 +32,7 @@ export default function LoginPage() {
     
     try {
       await dispatch(loginUser({ email, password })).unwrap();
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     } catch (err: any) {
       setError(err || 'Ошибка входа');
     }

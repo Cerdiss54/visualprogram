@@ -18,7 +18,7 @@ export default function RegisterPage() {
       setError('Имя обязательно');
       return false;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email.includes('@') || !email.includes('.')) {
       setError('Неверный формат email');
       return false;
     }
