@@ -83,6 +83,10 @@ const spreadsheetSlice = createSlice({
     },
     updateCellData: (state, action: PayloadAction<{ cellId: string; entValue: string }>) => {
       const { cellId, entValue } = action.payload;
+
+      const currentVal = state.matrixData[cellId]?.entValue || '';
+      if (currentVal === entValue) return;
+
       pushToHistory(state);
       state.matrixData[cellId] = {
         id: cellId,

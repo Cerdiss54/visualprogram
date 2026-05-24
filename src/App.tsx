@@ -26,7 +26,9 @@ import {
 import { setScreen, setHasUnsavedChanges, setSaveStatus } from '@/store/slices/uiSlice';
 import { CellCoords, SelectedRange, DocumentItem} from '@/types/spreadsheet';
 import { useTableResize } from '@/functions/tableResize';
+import { ContextMenuState } from '@/functions/tableEditor';
 import '@/App.css';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -66,6 +68,14 @@ const SpreadsheetTable: React.FC = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: rows,
+    getScrollElement: () => parentRef.current,
+    estimateSize: (i) => rowHeights[i] || 24,
+    overscan: 10, // запас строк сверху и снизу для плавного скролла
+  });
 
   const { columnWidths, rowHeights, startResizeColumn, startResizeRow, isResizing } = useTableResize(cols, rows);
 
@@ -146,9 +156,13 @@ const SpreadsheetTable: React.FC = () => {
 
   if (!currentDoc) return null;
 
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom = virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
+
   return (
     <>
-      <div className="table-scroll-box">
+      <div className="table-scroll-box" ref={parentRef} style={{ overflow: 'auto', height: '100%', maxHeight: 'calc(100vh - 150px)' }}>
         <table className="excel-table">
           <thead>
             <tr>
@@ -174,11 +188,13 @@ const SpreadsheetTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: rows }).map((_, rIdx) => {
+            {paddingTop > 0 && <tr><td style={{ height: `${paddingTop}px`, padding: 0, border: 0 }} colSpan={cols + 1} /></tr>}
+            {virtualRows.map((virtualRow) => {
+              const rIdx = virtualRow.index;
               const rowNum = rIdx + 1;
-              const rowHeight = rowHeights[rIdx];
+              const rowHeight = rowHeights[rIdx] || 24;
               return (
-                <tr key={rowNum} style={{ height: rowHeight }}>
+                <tr key={virtualRow.key} style={{ height: rowHeight }} data-index={virtualRow.index} ref={rowVirtualizer.measureElement}>
                   <td
                     className="sticky-row-header"
                     style={{ height: rowHeight, position: 'relative' }}
@@ -237,6 +253,7 @@ const SpreadsheetTable: React.FC = () => {
                 </tr>
               );
             })}
+            {paddingBottom > 0 && <tr><td style={{ height: `${paddingBottom}px`, padding: 0, border: 0 }} colSpan={cols + 1} /></tr>}
           </tbody>
         </table>
       </div>

@@ -20,7 +20,7 @@ describe('documents slice', () => {
   const initialState = {
     list: [],
     activeDocId: null,
-    status: 'idle',
+    status: 'idle' as const,
   };
 
   it('deleteDocumentById removes doc and clears activeDocId if matches', () => {
