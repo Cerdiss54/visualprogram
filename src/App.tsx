@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchDocuments } from '@/store/slices/documentsSlice';
 import AppLayout from '@/components/AppLayout';
 import DashboardPage from '@/components/DashboardPage';
@@ -8,10 +8,13 @@ import SpreadsheetPage from '@/components/SpreadsheetPage';
 import ProfilePage from '@/components/ProfilePage';
 import NotFoundPage from '@/components/NotFoundPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import LoginPage from '@/components/LoginPage';
+import RegisterPage from '@/components/RegisterPage';
 import '@/App.css';
 
 export default function App() {
   const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   useEffect(() => {
     dispatch(fetchDocuments());
@@ -20,7 +23,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
         
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<DashboardPage />} />
