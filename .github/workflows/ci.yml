@@ -2,9 +2,9 @@ name: Lab5 TypeScript Pipeline Tests
 
 on:
   push:
-    branches: [ lab5 ]
+    branches: [ itogpr ]
   pull_request:
-    branches: [ lab5 ]
+    branches: [ itogpr ]
 
 jobs:
   test-typescript-pipeline:
