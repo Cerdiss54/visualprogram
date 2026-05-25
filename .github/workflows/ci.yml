@@ -27,6 +27,9 @@ jobs:
     - name: Type check (strict order validation)
       run: npx tsc --noEmit
     
+    - name: Run ESLint & Prettier
+      run: npx eslint "src/**/*.{ts,tsx}" && npx prettier --check "src/**/*.{ts,tsx}"
+
     - name: Run type system tests
       run: npm test -- --testNamePattern="type.*order"
     

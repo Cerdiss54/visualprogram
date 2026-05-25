@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -230,7 +230,7 @@ const SpreadsheetTable: React.FC = React.memo(() => {
                         key={cellId}
                         className={`grid-cell ${isActive ? 'active' : ''}`}
                         style={{
-                          backgroundColor: isInRange && !isActive ? '#e6f4ea' : undefined,
+                        backgroundColor: isInRange && !isActive ? 'var(--bg-highlight)' : cellStyle?.backgroundColor,
                           width: columnWidths[alphabet.indexOf(letter)],
                           height: rowHeight,
                         }}
@@ -260,9 +260,9 @@ const SpreadsheetTable: React.FC = React.memo(() => {
                               fontWeight: cellStyle?.fontWeight,
                               fontStyle: cellStyle?.fontStyle,
                               textDecoration: cellStyle?.textDecoration,
-                              backgroundColor: cellStyle?.backgroundColor,
-                              color: cellStyle?.color,
+                            color: cellStyle?.color,
                               textAlign: cellStyle?.textAlign,
+                              display: 'block',
                             }}
                           >
                             {displayValue}
@@ -289,8 +289,8 @@ const SpreadsheetTable: React.FC = React.memo(() => {
             position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            background: 'white',
-            border: '1px solid #ccc',
+            background: 'var(--bg-header)',
+            border: '1px solid var(--border-color)',
             borderRadius: '4px',
             boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
             zIndex: 1000,
@@ -300,12 +300,12 @@ const SpreadsheetTable: React.FC = React.memo(() => {
         >
           {contextMenu.type === 'row' ? (
             <>
-              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }} onClick={() => handleAddRow(contextMenu.index)}>Добавить строку</div>
+              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }} onClick={() => handleAddRow(contextMenu.index)}>Добавить строку</div>
               <div style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }} onClick={() => handleDeleteRow(contextMenu.index)}>Удалить строку {contextMenu.index + 1}</div>
             </>
           ) : (
             <>
-              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }} onClick={() => handleAddColumn(contextMenu.index)}>Добавить столбец</div>
+              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }} onClick={() => handleAddColumn(contextMenu.index)}>Добавить столбец</div>
               <div style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }} onClick={() => handleDeleteColumn(contextMenu.index)}>Удалить столбец {String.fromCharCode(65 + contextMenu.index)}</div>
             </>
           )}
@@ -320,6 +320,8 @@ export default function SpreadsheetPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
+  const [stylesLoaded, setStylesLoaded] = useState(false);
+
   const allDocuments = useAppSelector((s) => s.documents.list);
   const user = useAppSelector((s) => s.auth.user);
   const activeDocId = useAppSelector((s) => s.documents.activeDocId);
@@ -331,13 +333,13 @@ export default function SpreadsheetPage() {
   const hasUnsavedChanges = useAppSelector((s) => s.ui.hasUnsavedChanges);
   const isLoading = useAppSelector((s) => s.ui.isLoading);
 
-  const globalDoc = allDocuments.find((d: DocumentItem) => d.id === documentId);
-  const currentDoc = globalDoc?.userId === user?.id ? globalDoc : undefined;
+  const globalDoc = useMemo(() => allDocuments.find((d: DocumentItem) => d.id === documentId), [allDocuments, documentId]);
+  const currentDoc = useMemo(() => globalDoc?.userId === user?.id ? globalDoc : undefined, [globalDoc, user?.id]);
   const rows = currentDoc?.rows ?? 0;
   const cols = currentDoc?.cols ?? 0;
 
   const activeCellStyle = activeCellId ? cellStyles[activeCellId] : {};
-  const clipboardRef = useRef<{ cells: string[]; data: Record<string, string>; styles: Record<string, CellStyle> } | null>(null);
+  const clipboardRef = useRef<{ cells: string[]; data: Record<string, string>; styles: Record<string, CellStyle>; sourceRows: number; sourceCols: number } | null>(null);
 
   const navigateWithConfirm = useCallback((to: string) => {
     if (hasUnsavedChanges) {
@@ -353,8 +355,12 @@ export default function SpreadsheetPage() {
     if (!activeCellId) return;
     if (selectedRange && (selectedRange.start.row !== selectedRange.end.row || selectedRange.start.col !== selectedRange.end.col)) {
       const cells: string[] = [];
-      for (let r = selectedRange.start.row; r <= selectedRange.end.row; r++) {
-        for (let c = selectedRange.start.col; c <= selectedRange.end.col; c++) {
+      const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
+      const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
+      const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
+      const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
           const cellId = `${alphabet[c]}${r + 1}`;
           cells.push(cellId);
         }
@@ -370,15 +376,24 @@ export default function SpreadsheetPage() {
     const cells: string[] = [];
     const data: Record<string, string> = {};
     const styles: Record<string, CellStyle> = {};
-    for (let r = selectedRange.start.row; r <= selectedRange.end.row; r++) {
-      for (let c = selectedRange.start.col; c <= selectedRange.end.col; c++) {
+    
+    const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
+    const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
+    const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
+    const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
+    
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
         const cellId = `${alphabet[c]}${r + 1}`;
         cells.push(cellId);
         data[cellId] = matrixData[cellId]?.entValue || '';
         if (cellStyles[cellId]) styles[cellId] = cellStyles[cellId];
       }
     }
-    clipboardRef.current = { cells, data, styles };
+    
+    const sourceRows = maxRow - minRow + 1;
+    const sourceCols = maxCol - minCol + 1;
+    clipboardRef.current = { cells, data, styles, sourceRows, sourceCols };
     const plainText = cells.map(cellId => data[cellId]).join('\t');
     navigator.clipboard?.writeText(plainText);
   }, [selectedRange, matrixData, cellStyles]);
@@ -387,8 +402,12 @@ export default function SpreadsheetPage() {
     if (!selectedRange) return;
     handleCopy();
     const cellsToClear: string[] = [];
-    for (let r = selectedRange.start.row; r <= selectedRange.end.row; r++) {
-      for (let c = selectedRange.start.col; c <= selectedRange.end.col; c++) {
+    const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
+    const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
+    const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
+    const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
         const cellId = `${alphabet[c]}${r + 1}`;
         cellsToClear.push(cellId);
       }
@@ -401,20 +420,18 @@ export default function SpreadsheetPage() {
 
   const handlePaste = useCallback(() => {
     if (!clipboardRef.current || !activeCellId) return;
-    const { cells, data, styles } = clipboardRef.current;
+    const { cells, data, styles, sourceRows, sourceCols } = clipboardRef.current;
     const activeCoords = cellIdToCoords(activeCellId);
     let idx = 0;
-    const sourceRows = selectedRange ? selectedRange.end.row - selectedRange.start.row + 1 : 1;
-    const sourceCols = selectedRange ? selectedRange.end.col - selectedRange.start.col + 1 : 1;
     for (let r = 0; r < sourceRows; r++) {
       for (let c = 0; c < sourceCols; c++) {
         const sourceCell = cells[idx];
-        if (sourceCell && data[sourceCell]) {
+        if (sourceCell) {
           const targetRow = activeCoords.row + r;
           const targetCol = activeCoords.col + c;
           if (targetRow < rows && targetCol < cols) {
             const targetCellId = `${alphabet[targetCol]}${targetRow + 1}`;
-            dispatch(updateCellData({ cellId: targetCellId, entValue: data[sourceCell] }));
+            dispatch(updateCellData({ cellId: targetCellId, entValue: data[sourceCell] || '' }));
             if (styles[sourceCell]) {
               dispatch(setCellStyle({ cellId: targetCellId, style: styles[sourceCell] }));
             }
@@ -423,7 +440,7 @@ export default function SpreadsheetPage() {
         idx++;
       }
     }
-  }, [activeCellId, selectedRange, rows, cols, dispatch]);
+  }, [activeCellId, rows, cols, dispatch]);
 
   const handleSelectAll = useCallback(() => {
     if (rows && cols) {
@@ -434,8 +451,12 @@ export default function SpreadsheetPage() {
   const handleClear = useCallback(() => {
     if (selectedRange) {
       const cellsToClear: string[] = [];
-      for (let r = selectedRange.start.row; r <= selectedRange.end.row; r++) {
-        for (let c = selectedRange.start.col; c <= selectedRange.end.col; c++) {
+      const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
+      const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
+      const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
+      const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
           cellsToClear.push(`${alphabet[c]}${r + 1}`);
         }
       }
@@ -461,6 +482,24 @@ export default function SpreadsheetPage() {
     dispatch(setSelectedRange({ start: { row: newRow, col: newCol }, end: { row: newRow, col: newCol } }));
   }, [activeCellId, cols, rows, dispatch]);
 
+  const handleArrowNavigation = useCallback((direction: 'up' | 'down' | 'left' | 'right', shift: boolean) => {
+    if (!activeCellId) return;
+    const { row, col } = cellIdToCoords(activeCellId);
+    let newRow = row, newCol = col;
+    if (direction === 'up' && row > 0) newRow--;
+    if (direction === 'down' && row < rows - 1) newRow++;
+    if (direction === 'left' && col > 0) newCol--;
+    if (direction === 'right' && col < cols - 1) newCol++;
+    const newCellId = `${alphabet[newCol]}${newRow + 1}`;
+    dispatch(setActiveCell(newCellId));
+    
+    if (shift && selectedRange) {
+      dispatch(setSelectedRange({ start: selectedRange.start, end: { row: newRow, col: newCol } }));
+    } else {
+      dispatch(setSelectedRange({ start: { row: newRow, col: newCol }, end: { row: newRow, col: newCol } }));
+    }
+  }, [activeCellId, cols, rows, dispatch, selectedRange]);
+
   const handleEnter = useCallback(() => {
     if (!activeCellId) return;
     const editingCell = document.querySelector('.cell-input-field');
@@ -475,17 +514,49 @@ export default function SpreadsheetPage() {
   }, [activeCellId, matrixData]);
 
   useEffect(() => {
+    if (activeDocId) {
+      setStylesLoaded(false);
+      const saved = localStorage.getItem(`styles_${activeDocId}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          Object.entries(parsed).forEach(([cellId, style]) => {
+            dispatch(setCellStyle({ cellId, style: style as CellStyle }));
+          });
+        } catch (e) {}
+      }
+      setStylesLoaded(true);
+    }
+  }, [activeDocId, dispatch]);
+
+  useEffect(() => {
+    if (activeDocId && stylesLoaded) {
+      localStorage.setItem(`styles_${activeDocId}`, JSON.stringify(cellStyles));
+    }
+  }, [cellStyles, activeDocId, stylesLoaded]);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 's') { e.preventDefault(); if (activeDocId) dispatch(saveActiveDocument()); }
-      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) { e.preventDefault(); dispatch(undo()); }
-      if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); dispatch(redo()); }
-      if (e.ctrlKey && e.key === 'c') { e.preventDefault(); handleCopy(); }
-      if (e.ctrlKey && e.key === 'x') { e.preventDefault(); handleCut(); }
-      if (e.ctrlKey && e.key === 'v') { e.preventDefault(); handlePaste(); }
-      if (e.ctrlKey && e.key === 'a') { e.preventDefault(); handleSelectAll(); }
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
+        return;
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'b') { e.preventDefault(); applyFormatting({ fontWeight: activeCellStyle?.fontWeight === 'bold' ? 'normal' : 'bold' }); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'i') { e.preventDefault(); applyFormatting({ fontStyle: activeCellStyle?.fontStyle === 'italic' ? 'normal' : 'italic' }); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'u') { e.preventDefault(); applyFormatting({ textDecoration: activeCellStyle?.textDecoration === 'underline' ? 'none' : 'underline' }); }
+      if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); if (activeDocId) dispatch(saveActiveDocument()); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); dispatch(undo()); }
+      if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); dispatch(redo()); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'c') { e.preventDefault(); handleCopy(); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'x') { e.preventDefault(); handleCut(); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'v') { e.preventDefault(); handlePaste(); }
+      if (e.ctrlKey && e.key.toLowerCase() === 'a') { e.preventDefault(); handleSelectAll(); }
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); handleClear(); }
       if (e.key === 'Tab') { e.preventDefault(); handleTabNavigation(e.shiftKey); }
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEnter(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); handleArrowNavigation('up', e.shiftKey); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); handleArrowNavigation('down', e.shiftKey); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); handleArrowNavigation('left', e.shiftKey); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); handleArrowNavigation('right', e.shiftKey); }
       if (e.key === 'Escape') { 
         const input = document.querySelector('.cell-input-field');
         if (input) (input as HTMLElement).blur();
@@ -493,7 +564,7 @@ export default function SpreadsheetPage() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeDocId, dispatch, handleCopy, handleCut, handlePaste, handleSelectAll, handleClear, handleTabNavigation, handleEnter]);
+  }, [activeDocId, activeCellStyle, dispatch, handleCopy, handleCut, handlePaste, handleSelectAll, handleClear, handleTabNavigation, handleEnter, applyFormatting, handleArrowNavigation]);
 
   useEffect(() => {
     if (!isLoading && documentId && globalDoc) {
@@ -527,6 +598,16 @@ export default function SpreadsheetPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
+  // Автосохранение изменений в течение 500 мс (debounce)
+  useEffect(() => {
+    if (hasUnsavedChanges && activeDocId) {
+      const timer = setTimeout(() => {
+        dispatch(saveActiveDocument());
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasUnsavedChanges, activeDocId, dispatch]);
+
   const exportToCSV = () => {
     if (!currentDoc) return;
     const { rows, cols, matrixData, title } = currentDoc;
@@ -551,7 +632,7 @@ export default function SpreadsheetPage() {
   const exportToJSON = () => {
     if (!currentDoc) return;
     const { title, rows, cols, matrixData, createdAt, updatedAt } = currentDoc;
-    const exportDoc = { title, rows, cols, matrixData, createdAt, updatedAt };
+    const exportDoc = { title, rows, cols, matrixData, cellStyles, createdAt, updatedAt };
     const blob = new Blob([JSON.stringify(exportDoc, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -568,8 +649,8 @@ export default function SpreadsheetPage() {
   if (!currentDoc) return null;
 
   const Breadcrumbs = () => (
-    <div style={{ fontSize: '14px', padding: '8px 16px', background: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
-      <span style={{ cursor: 'pointer', color: '#007bff' }} onClick={() => navigateWithConfirm('/dashboard')}>
+    <div style={{ fontSize: '14px', padding: '8px 16px', background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-color)' }}>
+      <span style={{ cursor: 'pointer', color: 'var(--link-color)' }} onClick={() => navigateWithConfirm('/dashboard')}>
         Мои документы
       </span>
       {' → '}
@@ -581,7 +662,7 @@ export default function SpreadsheetPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Breadcrumbs />
       
-      <div className="formatting-toolbar" style={{ display: 'flex', gap: '8px', padding: '8px 16px', borderBottom: '1px solid #ddd', alignItems: 'center', flexWrap: 'wrap', background: '#f9f9f9' }}>
+      <div className="formatting-toolbar" style={{ display: 'flex', gap: '8px', padding: '8px 16px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg-sidebar)' }}>
         <button onClick={() => applyFormatting({ fontWeight: activeCellStyle?.fontWeight === 'bold' ? 'normal' : 'bold' })} style={{ fontWeight: 'bold', padding: '4px 8px' }}>B</button>
         <button onClick={() => applyFormatting({ fontStyle: activeCellStyle?.fontStyle === 'italic' ? 'normal' : 'italic' })} style={{ fontStyle: 'italic', padding: '4px 8px' }}>I</button>
         <button onClick={() => applyFormatting({ textDecoration: activeCellStyle?.textDecoration === 'underline' ? 'none' : 'underline' })} style={{ textDecoration: 'underline', padding: '4px 8px' }}>U</button>
@@ -589,13 +670,13 @@ export default function SpreadsheetPage() {
         <input type="color" value={activeCellStyle?.backgroundColor || '#ffffff'} onChange={(e) => applyFormatting({ backgroundColor: e.target.value })} title="Цвет фона" style={{ width: '30px', height: '30px' }} />
         <input type="color" value={activeCellStyle?.color || '#000000'} onChange={(e) => applyFormatting({ color: e.target.value })} title="Цвет текста" style={{ width: '30px', height: '30px' }} />
         
-        <select value={activeCellStyle?.textAlign || 'left'} onChange={(e) => applyFormatting({ textAlign: e.target.value as any })} style={{ padding: '4px' }}>
+        <select value={activeCellStyle?.textAlign || 'left'} onChange={(e) => applyFormatting({ textAlign: e.target.value as CellStyle['textAlign'] })} style={{ padding: '4px' }}>
           <option value="left">Влево</option>
           <option value="center">Центр</option>
           <option value="right">Вправо</option>
         </select>
         
-        <select value={activeCellStyle?.numberFormat || 'general'} onChange={(e) => applyFormatting({ numberFormat: e.target.value as any })} style={{ padding: '4px' }}>
+        <select value={activeCellStyle?.numberFormat || 'general'} onChange={(e) => applyFormatting({ numberFormat: e.target.value as CellStyle['numberFormat'] })} style={{ padding: '4px' }}>
           <option value="general">Общий</option>
           <option value="number">Число</option>
           <option value="percent">Процент</option>
@@ -604,21 +685,21 @@ export default function SpreadsheetPage() {
         </select>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '12px', borderBottom: '1px solid #ddd' }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '12px', borderBottom: '1px solid var(--border-color)' }}>
         <button onClick={() => navigateWithConfirm('/dashboard')}>⬅ На главную</button>
         <span style={{ flex: 1, fontWeight: 'bold' }}>{currentDoc.title}</span>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={exportToCSV}>Экспорт CSV</button>
           <button onClick={exportToJSON}>Экспорт JSON</button>
         </div>
-        <span style={{ fontSize: '14px', color: saveStatus === 'error' ? '#d32f2f' : '#888' }}>
+        <span style={{ fontSize: '14px', color: saveStatus === 'error' ? '#d32f2f' : 'var(--text-muted)' }}>
           {saveStatus === 'saving' && 'Сохранение...'}
           {saveStatus === 'saved' && 'Сохранено'}
           {saveStatus === 'error' && 'Ошибка сохранения'}
         </span>
       </div>
 
-      <div style={{ display: 'flex', padding: '4px 16px', gap: '8px', borderBottom: '1px solid #ddd' }}>
+      <div style={{ display: 'flex', padding: '4px 16px', gap: '8px', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ width: '60px', fontWeight: 'bold' }}>{activeCellId ?? ''}</div>
         <input
           type="text"

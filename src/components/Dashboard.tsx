@@ -3,7 +3,7 @@ import { DocumentItem } from '@/types/spreadsheet';
 
 interface DashboardProps {
   documents: DocumentItem[];
-  onCreateDoc: (title: string, rows: number, cols: number, data?: any) => void;
+  onCreateDoc: (title: string, rows: number, cols: number, data?: unknown) => void;
   onSelectDoc: (id: string) => void;
   onDeleteDoc: (id: string) => void;
   onRenameDoc: (id: string, newTitle: string) => void;
@@ -13,7 +13,7 @@ interface DashboardProps {
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-function PreviewTable({ doc }: { doc: DocumentItem }) {
+const PreviewTable = React.memo(({ doc }: { doc: DocumentItem }) => {
   const previewRows = 3;
   const previewCols = 3;
   return (
@@ -33,7 +33,7 @@ function PreviewTable({ doc }: { doc: DocumentItem }) {
       </table>
     </div>
   );
-}
+});
 
 export default function Dashboard({
   documents,
@@ -79,7 +79,7 @@ export default function Dashboard({
       if (data.length === 0) return;
       const numRows = data.length;
       const numCols = Math.max(...data.map(row => row.length));
-      const matrixData: Record<string, any> = {};
+      const matrixData: Record<string, { id: string; entValue: string; dispValue: string }> = {};
       for (let r = 0; r < numRows; r++) {
         const row = data[r];
         for (let c = 0; c < numCols; c++) {
