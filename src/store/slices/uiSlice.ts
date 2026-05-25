@@ -46,13 +46,7 @@ const uiSlice = createSlice({
   },
 });
 
-export const {
-  setScreen,
-  setCreateModalOpen,
-  setSaveStatus,
-  showNotification,
-  setHasUnsavedChanges,
-  setLoading,
-} = uiSlice.actions;
+export const { setScreen, setCreateModalOpen, setSaveStatus, showNotification, setHasUnsavedChanges, setLoading } =
+  uiSlice.actions;
 
 export default uiSlice.reducer;

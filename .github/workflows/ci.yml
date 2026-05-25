@@ -1,18 +1,15 @@
-name: Lab5 TypeScript Pipeline Tests
+name: ItogPr TypeScript Pipeline Tests
 
 on:
   push:
-    branches: [ lab5 ]
+    branches: [ itogpr ]
   pull_request:
-    branches: [ lab5 ]
+    branches: [ itogpr ]
 
 jobs:
   test-typescript-pipeline:
     runs-on: ubuntu-latest
-    
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    
+
     steps:
     - uses: actions/checkout@v4
     
@@ -22,11 +19,14 @@ jobs:
         node-version: '22.x'
     
     - name: Install dependencies
-      run: npm ci
+      run: npm install
     
     - name: Type check (strict order validation)
-      run: npx tsc --noEmit
+      run: npx -p typescript tsc --noEmit
     
+    - name: Run ESLint & Prettier
+      run: npx eslint "src/**/*.{ts,tsx}" && npx prettier --check "src/**/*.{ts,tsx}"
+
     - name: Run type system tests
       run: npm test -- --testNamePattern="type.*order"
     

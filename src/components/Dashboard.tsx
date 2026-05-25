@@ -3,7 +3,7 @@ import { DocumentItem } from '@/types/spreadsheet';
 
 interface DashboardProps {
   documents: DocumentItem[];
-  onCreateDoc: (title: string, rows: number, cols: number, data?: any) => void;
+  onCreateDoc: (title: string, rows: number, cols: number, data?: unknown) => void;
   onSelectDoc: (id: string) => void;
   onDeleteDoc: (id: string) => void;
   onRenameDoc: (id: string, newTitle: string) => void;
@@ -13,7 +13,7 @@ interface DashboardProps {
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-function PreviewTable({ doc }: { doc: DocumentItem }) {
+const PreviewTable = React.memo(({ doc }: { doc: DocumentItem }) => {
   const previewRows = 3;
   const previewCols = 3;
   return (
@@ -33,7 +33,7 @@ function PreviewTable({ doc }: { doc: DocumentItem }) {
       </table>
     </div>
   );
-}
+});
 
 export default function Dashboard({
   documents,
@@ -78,8 +78,8 @@ export default function Dashboard({
       const data = parseCSV(text);
       if (data.length === 0) return;
       const numRows = data.length;
-      const numCols = Math.max(...data.map(row => row.length));
-      const matrixData: Record<string, any> = {};
+      const numCols = Math.max(...data.map((row) => row.length));
+      const matrixData: Record<string, { id: string; entValue: string; dispValue: string }> = {};
       for (let r = 0; r < numRows; r++) {
         const row = data[r];
         for (let c = 0; c < numCols; c++) {
@@ -164,7 +164,7 @@ export default function Dashboard({
             + Создать таблицу
           </button>
           <button className="btn-import" onClick={handleImportClick}>
-             Импорт CSV
+            Импорт CSV
           </button>
           <input
             ref={fileInputRef}
@@ -240,16 +240,34 @@ export default function Dashboard({
               <div className="modal-row-inputs">
                 <div className="input-group">
                   <label className="modal-label">Строки (max 1000)</label>
-                  <input type="number" min="1" max="1000" value={docRows} onChange={(e) => setDocRows(parseInt(e.target.value) || 0)} required />
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={docRows}
+                    onChange={(e) => setDocRows(parseInt(e.target.value) || 0)}
+                    required
+                  />
                 </div>
                 <div className="input-group">
                   <label className="modal-label">Столбцы (max 26)</label>
-                  <input type="number" min="1" max="26" value={docCols} onChange={(e) => setDocCols(parseInt(e.target.value) || 0)} required />
+                  <input
+                    type="number"
+                    min="1"
+                    max="26"
+                    value={docCols}
+                    onChange={(e) => setDocCols(parseInt(e.target.value) || 0)}
+                    required
+                  />
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>Отмена</button>
-                <button type="submit" className="btn-confirm">Создать</button>
+                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>
+                  Отмена
+                </button>
+                <button type="submit" className="btn-confirm">
+                  Создать
+                </button>
               </div>
             </form>
           </div>
@@ -262,8 +280,12 @@ export default function Dashboard({
             <h2>Подтверждение удаления</h2>
             <p>Вы уверены, что хотите удалить этот документ?</p>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={cancelDelete}>Отмена</button>
-              <button className="btn-confirm btn-danger" onClick={handleDeleteConfirmed}>Удалить</button>
+              <button className="btn-cancel" onClick={cancelDelete}>
+                Отмена
+              </button>
+              <button className="btn-confirm btn-danger" onClick={handleDeleteConfirmed}>
+                Удалить
+              </button>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 export interface CellData {
-    id: string;
-    entValue: string;
-    dispValue: string;
+  id: string;
+  entValue: string;
+  dispValue: string;
 }
 
 export interface SpreadsheetData {
@@ -9,22 +9,22 @@ export interface SpreadsheetData {
 }
 
 export interface CellCoords {
-    row: number;
-    col: number;
+  row: number;
+  col: number;
 }
 
 export interface SelectedRange {
-    start: CellCoords;
-    end: CellCoords;
+  start: CellCoords;
+  end: CellCoords;
 }
 
 export interface DocumentItem {
-    id: string;
-    title: string;
-    rows: number;
-    cols: number;
-    createdAt: string;
-    updatedAt: string;
-    matrixData: SpreadsheetData;
-    userId?: string;
+  id: string;
+  title: string;
+  rows: number;
+  cols: number;
+  createdAt: string;
+  updatedAt: string;
+  matrixData: SpreadsheetData;
+  userId?: string;
 }

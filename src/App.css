@@ -1,3 +1,33 @@
+:root {
+  --bg-main: #ffffff;
+  --bg-sidebar: #f8f9fa;
+  --bg-header: #ffffff;
+  --bg-panel: #f5f5f5;
+  --text-main: #000000;
+  --text-muted: #555555;
+  --border-color: #dddddd;
+  --link-color: #007bff;
+  --bg-highlight: #e6f4ea;
+  --btn-danger-bg: #d32f2f;
+}
+[data-theme='dark'] {
+  --bg-main: #121212;
+  --bg-sidebar: #1e1e1e;
+  --bg-header: #1e1e1e;
+  --bg-panel: #2a2a2a;
+  --text-main: #ffffff;
+  --text-muted: #aaaaaa;
+  --border-color: #444444;
+  --link-color: #4da3ff;
+  --bg-highlight: #2a3b30;
+  --btn-danger-bg: #ef5350;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
 .table-toolbar {
   display: flex;
   align-items: center;
@@ -37,15 +67,15 @@
 
 .formula-bar {
   display: flex;
-  background: #f3f3f3;
+  background: var(--bg-panel);
   padding: 6px;
-  border-bottom: 1px solid #bbb;
+  border-bottom: 1px solid var(--border-color);
   gap: 6px;
 }
 
 .active-id-box {
-  background: #fff;
-  border: 1px solid #ccc;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
   min-width: 50px;
   text-align: center;
   line-height: 26px;
@@ -56,8 +86,10 @@
 .formula-input {
   flex: 1;
   padding: 4px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   outline: none;
+  background: var(--bg-main);
+  color: var(--text-main);
 }
 
 .table-scroll-box {
@@ -72,11 +104,11 @@
 }
 
 .sticky-corner, .sticky-col-header, .sticky-row-header {
-  background: #f1f1f1;
-  border: 1px solid #ccc;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   font-size: 12px;
   text-align: center;
-  color: #444;
+  color: var(--text-muted);
   user-select: none;
 }
 
@@ -103,11 +135,11 @@
 }
 
 .grid-cell {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   width: 80px;
   height: 22px;
   padding: 0;
-  background: #fff;
+  background: var(--bg-main);
   cursor: cell;
   position: relative;
 }
@@ -121,7 +153,7 @@
 }
 
 .grid-cell.active {
-  outline: 2px solid #217346; 
+  outline: 2px solid var(--link-color); 
   z-index: 1;
 }
 
@@ -136,6 +168,8 @@
   padding: 0 4px;
   box-sizing: border-box;
   font-size: 13px;
+  background: var(--bg-main);
+  color: var(--text-main);
 }
 
 .dashboard-container {
@@ -150,12 +184,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
-  border-bottom: 2px solid #eaeaea;
+  border-bottom: 2px solid var(--border-color);
   padding-bottom: 15px;
 }
 
 .btn-create {
-  background: #217346;
+  background: var(--link-color);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -166,7 +200,7 @@
 }
 
 .btn-create:hover {
-  background: #1a5c38;
+  opacity: 0.8;
 }
 
 .doc-grid {
@@ -178,13 +212,13 @@
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
-  color: #888;
+  color: var(--text-muted);
   padding: 40px;
   font-size: 16px;
 }
 
 .doc-card {
-  border: 1px solid #dadada;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 16px;
   display: flex;
@@ -193,12 +227,12 @@
   cursor: pointer;
   position: relative;
   transition: box-shadow 0.2s;
-  background: #fff;
+  background: var(--bg-panel);
 }
 
 .doc-card:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  border-color: #217346;
+  border-color: var(--link-color);
 }
 
 .doc-icon {
@@ -208,13 +242,13 @@
 .doc-info h3 {
   margin: 0 0 5px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-main);
 }
 
 .doc-info p {
   margin: 0;
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .btn-delete {
@@ -236,7 +270,7 @@
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -244,7 +278,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-panel);
   padding: 24px;
   border-radius: 8px;
   width: 400px;
@@ -261,9 +295,11 @@
   padding: 10px;
   box-sizing: border-box;
   margin: 15px 0;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   outline: none;
+  background: var(--bg-main);
+  color: var(--text-main);
 }
 
 .modal-actions {
@@ -273,15 +309,16 @@
 }
 
 .btn-cancel {
-  background: #eee;
-  border: none;
+  background: transparent;
+  border: 1px solid var(--border-color);
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
+  color: var(--text-main);
 }
 
 .btn-confirm {
-  background: #217346;
+  background: var(--link-color);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -289,14 +326,18 @@
   cursor: pointer;
 }
 
+.btn-confirm.btn-danger {
+  background: var(--btn-danger-bg);
+}
+
 .doc-card {
-  border: 1px solid #dadada;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 16px;
   cursor: pointer;
   position: relative;
   transition: box-shadow 0.2s, border-color 0.2s;
-  background: #fff;
+  background: var(--bg-panel);
   display: flex;
   flex-direction: column;
 }
@@ -315,14 +356,14 @@
 .doc-meta-info h3 {
   margin: 0 0 4px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-main);
   word-break: break-all;
 }
 
 .doc-dimensions-badge {
   display: inline-block;
-  background: #e6f4ea;
-  color: #137333;
+  background: var(--bg-highlight);
+  color: var(--link-color);
   font-size: 11px;
   font-weight: bold;
   padding: 2px 6px;
@@ -333,13 +374,13 @@
 .doc-meta-info p {
   margin: 2px 0;
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .preview-table-box {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-main);
   overflow: hidden;
 }
 
@@ -351,24 +392,23 @@
 }
 
 .dashboard-preview-table td {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   width: 30px;
   height: 22px;
   font-size: 10px;
   text-align: center;
   vertical-align: middle;
-  color: #555;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: #fff;
 }
 
 .modal-label {
   display: block;
   font-size: 12px;
   font-weight: bold;
-  color: #555;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -384,4 +424,31 @@
 
 .modal-row-inputs input {
   margin: 0 !important;
+}
+
+.formatting-toolbar button {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 32px;
+  height: 32px;
+  color: var(--text-main);
+}
+.formatting-toolbar button:hover {
+  background: var(--bg-main);
+}
+.formatting-toolbar input[type="color"] {
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.formatting-toolbar select {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  cursor: pointer;
+  color: var(--text-main);
 }

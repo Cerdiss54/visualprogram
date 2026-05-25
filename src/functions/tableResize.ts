@@ -14,12 +14,8 @@ const DEFAULT_COLUMN_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 30;
 
 export const useTableResize = (totalCols: number, totalRows: number) => {
-  const [columnWidths, setColumnWidths] = useState<number[]>(
-    Array(totalCols).fill(DEFAULT_COLUMN_WIDTH)
-  );
-  const [rowHeights, setRowHeights] = useState<number[]>(
-    Array(totalRows).fill(DEFAULT_ROW_HEIGHT)
-  );
+  const [columnWidths, setColumnWidths] = useState<number[]>(Array(totalCols).fill(DEFAULT_COLUMN_WIDTH));
+  const [rowHeights, setRowHeights] = useState<number[]>(Array(totalRows).fill(DEFAULT_ROW_HEIGHT));
   const [resizeState, setResizeState] = useState<ResizeState>({
     isResizing: false,
     type: null,
@@ -30,27 +26,30 @@ export const useTableResize = (totalCols: number, totalRows: number) => {
     startHeight: 0,
   });
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!resizeState.isResizing) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!resizeState.isResizing) return;
 
-    if (resizeState.type === 'column') {
-      const deltaX = e.clientX - resizeState.startX;
-      const newWidth = Math.max(50, resizeState.startWidth + deltaX);
-      setColumnWidths((prev) => {
-        const updated = [...prev];
-        updated[resizeState.index] = newWidth;
-        return updated;
-      });
-    } else if (resizeState.type === 'row') {
-      const deltaY = e.clientY - resizeState.startY;
-      const newHeight = Math.max(20, resizeState.startHeight + deltaY);
-      setRowHeights((prev) => {
-        const updated = [...prev];
-        updated[resizeState.index] = newHeight;
-        return updated;
-      });
-    }
-  }, [resizeState]);
+      if (resizeState.type === 'column') {
+        const deltaX = e.clientX - resizeState.startX;
+        const newWidth = Math.max(50, resizeState.startWidth + deltaX);
+        setColumnWidths((prev) => {
+          const updated = [...prev];
+          updated[resizeState.index] = newWidth;
+          return updated;
+        });
+      } else if (resizeState.type === 'row') {
+        const deltaY = e.clientY - resizeState.startY;
+        const newHeight = Math.max(20, resizeState.startHeight + deltaY);
+        setRowHeights((prev) => {
+          const updated = [...prev];
+          updated[resizeState.index] = newHeight;
+          return updated;
+        });
+      }
+    },
+    [resizeState]
+  );
 
   const handleMouseUp = useCallback(() => {
     setResizeState({
