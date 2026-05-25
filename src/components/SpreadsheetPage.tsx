@@ -622,14 +622,13 @@ export default function SpreadsheetPage() {
     if (!activeCellId) return;
     const editingCell = document.querySelector('.cell-input-field');
     if (!editingCell) {
-      const cell = matrixData[activeCellId];
       const targetCell = document.querySelector(`[data-cell-id="${activeCellId}"]`);
       if (targetCell) {
         const event = new MouseEvent('dblclick', { bubbles: true });
         targetCell.dispatchEvent(event);
       }
     }
-  }, [activeCellId, matrixData]);
+  }, [activeCellId]);
 
   useEffect(() => {
     if (activeDocId) {
@@ -641,7 +640,9 @@ export default function SpreadsheetPage() {
           Object.entries(parsed).forEach(([cellId, style]) => {
             dispatch(setCellStyle({ cellId, style: style as CellStyle }));
           });
-        } catch (e) {}
+        } catch {
+          // Игнорируем ошибки парсинга
+        }
       }
       setStylesLoaded(true);
     }

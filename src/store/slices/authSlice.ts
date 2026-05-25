@@ -220,7 +220,7 @@ const authSlice = createSlice({
       .addCase(updateUserName.fulfilled, (state, action) => {
         state.user = action.payload;
       })
-      .addCase(updateUserPassword.fulfilled, (state) => {})
+      .addCase(updateUserPassword.fulfilled, (_state) => {})
       .addCase(updateUserPassword.rejected, (state, action) => {
         state.error = action.payload as string;
       });

@@ -37,9 +37,9 @@ export const evaluateCell = (entValue: string, data: SpreadsheetData): string =>
       return String(sum / numericValues.length);
     }
 
-    const match = formula.match(/^=([A-Z]+\d+)\s*([\+\-\*\/])\s*([A-Z]+\d+|\d+)$/);
+    const match = formula.match(new RegExp('^=([A-Z]+\\d+)\\s*([-+*/])\\s*([A-Z]+\\d+|\\d+)$'));
     if (match) {
-      const [_, leftId, operator, rightPart] = match;
+      const [, leftId, operator, rightPart] = match;
       const leftVal = getCellValueAsNumber(leftId, data);
 
       const isRightCell = /^[A-Z]+\d+$/.test(rightPart);
@@ -58,7 +58,7 @@ export const evaluateCell = (entValue: string, data: SpreadsheetData): string =>
     }
 
     return 'ERROR!';
-  } catch (e) {
+  } catch {
     return 'ERROR!';
   }
 };

@@ -42,7 +42,7 @@ export const addRow = (
   return newData;
 };
 
-export const deleteRow = (data: SpreadsheetData, rowIndex: number, alphabet: string[]): SpreadsheetData => {
+export const deleteRow = (data: SpreadsheetData, rowIndex: number, _alphabet: string[]): SpreadsheetData => {
   const newData: SpreadsheetData = {};
 
   Object.entries(data).forEach(([cellId, cell]) => {
