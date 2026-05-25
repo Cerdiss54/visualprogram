@@ -23,33 +23,37 @@ export const evaluateCell = (entValue: string, data: SpreadsheetData): string =>
     }
 
     if (formula.startsWith('=AVERAGE(')) {
-        const rangeStr = formula.replace('=AVERAGE(', '').replace(')', '');
-        const cells = parseRange(rangeStr);
-        
-        const numericValues = cells
-            .map(cellId => data[cellId]?.dispValue)
-            .filter(val => val !== undefined && val !== '' && !isNaN(Number(val)))
-            .map(val => Number(val));
+      const rangeStr = formula.replace('=AVERAGE(', '').replace(')', '');
+      const cells = parseRange(rangeStr);
 
-        if (numericValues.length === 0) return '0';
+      const numericValues = cells
+        .map((cellId) => data[cellId]?.dispValue)
+        .filter((val) => val !== undefined && val !== '' && !isNaN(Number(val)))
+        .map((val) => Number(val));
 
-        const sum = numericValues.reduce((acc, val) => acc + val, 0);
-        return String(sum / numericValues.length);
+      if (numericValues.length === 0) return '0';
+
+      const sum = numericValues.reduce((acc, val) => acc + val, 0);
+      return String(sum / numericValues.length);
     }
 
     const match = formula.match(/^=([A-Z]+\d+)\s*([\+\-\*\/])\s*([A-Z]+\d+|\d+)$/);
     if (match) {
       const [_, leftId, operator, rightPart] = match;
       const leftVal = getCellValueAsNumber(leftId, data);
-      
+
       const isRightCell = /^[A-Z]+\d+$/.test(rightPart);
       const rightVal = isRightCell ? getCellValueAsNumber(rightPart, data) : Number(rightPart);
 
       switch (operator) {
-        case '+': return String(leftVal + rightVal);
-        case '-': return String(leftVal - rightVal);
-        case '*': return String(leftVal * rightVal);
-        case '/': return rightVal !== 0 ? String(leftVal / rightVal) : 'DIV/0!';
+        case '+':
+          return String(leftVal + rightVal);
+        case '-':
+          return String(leftVal - rightVal);
+        case '*':
+          return String(leftVal * rightVal);
+        case '/':
+          return rightVal !== 0 ? String(leftVal / rightVal) : 'DIV/0!';
       }
     }
 

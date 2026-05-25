@@ -51,8 +51,27 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-main)', color: 'var(--text-main)' }}>
-      <div style={{ background: 'var(--bg-panel)', padding: '40px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '300px', border: '1px solid var(--border-color)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: 'var(--bg-main)',
+        color: 'var(--text-main)',
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--bg-panel)',
+          padding: '40px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          width: '300px',
+          border: '1px solid var(--border-color)',
+        }}
+      >
         <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Регистрация</h2>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input
@@ -60,33 +79,71 @@ export default function RegisterPage() {
             placeholder="Имя"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            style={{ padding: '10px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+            style={{
+              padding: '10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-main)',
+              color: 'var(--text-main)',
+            }}
           />
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: '10px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+            style={{
+              padding: '10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-main)',
+              color: 'var(--text-main)',
+            }}
           />
           <input
             type="password"
             placeholder="Пароль"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ padding: '10px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+            style={{
+              padding: '10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-main)',
+              color: 'var(--text-main)',
+            }}
           />
           <input
             type="password"
             placeholder="Подтверждение пароля"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            style={{ padding: '10px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+            style={{
+              padding: '10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-main)',
+              color: 'var(--text-main)',
+            }}
           />
           {error && <div style={{ color: '#d32f2f', fontSize: '14px' }}>{error}</div>}
-          <button type="submit" style={{ padding: '10px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Зарегистрироваться</button>
+          <button
+            type="submit"
+            style={{
+              padding: '10px',
+              background: '#28a745',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Зарегистрироваться
+          </button>
         </form>
-        <p style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>Уже есть аккаунт? <Link to="/login">Войти</Link></p>
+        <p style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
+          Уже есть аккаунт? <Link to="/login">Войти</Link>
+        </p>
       </div>
     </div>
   );

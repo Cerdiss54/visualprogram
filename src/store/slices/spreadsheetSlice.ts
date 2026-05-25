@@ -29,7 +29,10 @@ const pushToHistory = (state: SpreadsheetState) => {
 
 export const addRowThunk = createAsyncThunk(
   'spreadsheet/addRow',
-  async ({ rowIndex, totalCols, alphabet }: { rowIndex: number; totalCols: number; alphabet: string[] }, { getState }) => {
+  async (
+    { rowIndex, totalCols, alphabet }: { rowIndex: number; totalCols: number; alphabet: string[] },
+    { getState }
+  ) => {
     const state = getState() as any;
     const currentData = state.spreadsheet.matrixData;
     return addRow(currentData, rowIndex, totalCols, alphabet);
@@ -47,7 +50,10 @@ export const deleteRowThunk = createAsyncThunk(
 
 export const addColumnThunk = createAsyncThunk(
   'spreadsheet/addColumn',
-  async ({ colIndex, totalRows, alphabet }: { colIndex: number; totalRows: number; alphabet: string[] }, { getState }) => {
+  async (
+    { colIndex, totalRows, alphabet }: { colIndex: number; totalRows: number; alphabet: string[] },
+    { getState }
+  ) => {
     const state = getState() as any;
     const currentData = state.spreadsheet.matrixData;
     return addColumn(currentData, colIndex, totalRows, alphabet);
@@ -129,5 +135,6 @@ const spreadsheetSlice = createSlice({
   },
 });
 
-export const { setMatrix, setActiveCell, setSelectedRange, setLastClickedCell, updateCellData, undo, redo } = spreadsheetSlice.actions;
+export const { setMatrix, setActiveCell, setSelectedRange, setLastClickedCell, updateCellData, undo, redo } =
+  spreadsheetSlice.actions;
 export default spreadsheetSlice.reducer;

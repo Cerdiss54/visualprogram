@@ -14,8 +14,7 @@ export const store = configureStore({
     auth: authReducer,
     cellStyles: cellStylesReducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(debounceMiddleware),
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(debounceMiddleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

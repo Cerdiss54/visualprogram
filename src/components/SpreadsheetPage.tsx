@@ -20,7 +20,34 @@ import { useTableResize } from '@/functions/tableResize';
 import { ContextMenuState } from '@/functions/tableEditor';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-const alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+const alphabet = [
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z',
+];
 
 const cellIdToCoords = (id: string): CellCoords => {
   const match = id.match(/^([A-Z]+)(\d+)$/);
@@ -45,11 +72,16 @@ const formatCellValue = (rawValue: string, style?: CellStyle): string => {
   const num = parseFloat(rawValue);
   if (isNaN(num)) return rawValue;
   switch (style.numberFormat) {
-    case 'number': return num.toLocaleString();
-    case 'percent': return (num * 100).toFixed(2) + '%';
-    case 'currency': return '$' + num.toLocaleString();
-    case 'date': return new Date(num).toLocaleDateString();
-    default: return rawValue;
+    case 'number':
+      return num.toLocaleString();
+    case 'percent':
+      return (num * 100).toFixed(2) + '%';
+    case 'currency':
+      return '$' + num.toLocaleString();
+    case 'date':
+      return new Date(num).toLocaleDateString();
+    default:
+      return rawValue;
   }
 };
 
@@ -82,28 +114,34 @@ const SpreadsheetTable: React.FC = React.memo(() => {
     enabled: rows > 0,
   });
 
-  const handleSave = useCallback((cellId: string, value: string) => {
-    dispatch(updateCellData({ cellId, entValue: value }));
-    setEditingCellId(null);
-  }, [dispatch]);
+  const handleSave = useCallback(
+    (cellId: string, value: string) => {
+      dispatch(updateCellData({ cellId, entValue: value }));
+      setEditingCellId(null);
+    },
+    [dispatch]
+  );
 
   const startEditing = useCallback((cellId: string, currentValue: string) => {
     setEditingCellId(cellId);
     setInputValue(currentValue);
   }, []);
 
-  const handleCellClick = useCallback((cellId: string, e: React.MouseEvent) => {
-    const clickedCoords = cellIdToCoords(cellId);
-    if (e.shiftKey && lastClickedCell) {
-      const startCoords = cellIdToCoords(lastClickedCell);
-      dispatch(setSelectedRange({ start: startCoords, end: clickedCoords }));
-      dispatch(setActiveCell(cellId));
-    } else if (!e.shiftKey) {
-      dispatch(setSelectedRange({ start: clickedCoords, end: clickedCoords }));
-      dispatch(setActiveCell(cellId));
-      dispatch(setLastClickedCell(cellId));
-    }
-  }, [dispatch, lastClickedCell]);
+  const handleCellClick = useCallback(
+    (cellId: string, e: React.MouseEvent) => {
+      const clickedCoords = cellIdToCoords(cellId);
+      if (e.shiftKey && lastClickedCell) {
+        const startCoords = cellIdToCoords(lastClickedCell);
+        dispatch(setSelectedRange({ start: startCoords, end: clickedCoords }));
+        dispatch(setActiveCell(cellId));
+      } else if (!e.shiftKey) {
+        dispatch(setSelectedRange({ start: clickedCoords, end: clickedCoords }));
+        dispatch(setActiveCell(cellId));
+        dispatch(setLastClickedCell(cellId));
+      }
+    },
+    [dispatch, lastClickedCell]
+  );
 
   const openContextMenu = (e: React.MouseEvent, type: 'row' | 'column', index: number) => {
     e.preventDefault();
@@ -150,7 +188,9 @@ const SpreadsheetTable: React.FC = React.memo(() => {
 
   useEffect(() => {
     document.body.style.cursor = isResizing ? 'col-resize' : '';
-    return () => { document.body.style.cursor = ''; };
+    return () => {
+      document.body.style.cursor = '';
+    };
   }, [isResizing]);
 
   useEffect(() => {
@@ -161,11 +201,16 @@ const SpreadsheetTable: React.FC = React.memo(() => {
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
-  const paddingBottom = virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
+  const paddingBottom =
+    virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
     <>
-      <div className="table-scroll-box" ref={parentRef} style={{ overflow: 'auto', height: '100%', maxHeight: 'calc(100vh - 150px)' }}>
+      <div
+        className="table-scroll-box"
+        ref={parentRef}
+        style={{ overflow: 'auto', height: '100%', maxHeight: 'calc(100vh - 150px)' }}
+      >
         <table className="excel-table">
           <thead>
             <tr>
@@ -179,7 +224,15 @@ const SpreadsheetTable: React.FC = React.memo(() => {
                 >
                   {letter}
                   <div
-                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '5px', cursor: 'col-resize', zIndex: 1 }}
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: '5px',
+                      cursor: 'col-resize',
+                      zIndex: 1,
+                    }}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -201,7 +254,12 @@ const SpreadsheetTable: React.FC = React.memo(() => {
               const rowNum = rIdx + 1;
               const rowHeight = rowHeights[rIdx] || 24;
               return (
-                <tr key={virtualRow.key} style={{ height: rowHeight }} data-index={virtualRow.index} ref={rowVirtualizer.measureElement}>
+                <tr
+                  key={virtualRow.key}
+                  style={{ height: rowHeight }}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                >
                   <td
                     className="sticky-row-header"
                     style={{ height: rowHeight, position: 'relative' }}
@@ -209,7 +267,15 @@ const SpreadsheetTable: React.FC = React.memo(() => {
                   >
                     {rowNum}
                     <div
-                      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '5px', cursor: 'row-resize', zIndex: 1 }}
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: '5px',
+                        cursor: 'row-resize',
+                        zIndex: 1,
+                      }}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -230,7 +296,7 @@ const SpreadsheetTable: React.FC = React.memo(() => {
                         key={cellId}
                         className={`grid-cell ${isActive ? 'active' : ''}`}
                         style={{
-                        backgroundColor: isInRange && !isActive ? 'var(--bg-highlight)' : cellStyle?.backgroundColor,
+                          backgroundColor: isInRange && !isActive ? 'var(--bg-highlight)' : cellStyle?.backgroundColor,
                           width: columnWidths[alphabet.indexOf(letter)],
                           height: rowHeight,
                         }}
@@ -260,7 +326,7 @@ const SpreadsheetTable: React.FC = React.memo(() => {
                               fontWeight: cellStyle?.fontWeight,
                               fontStyle: cellStyle?.fontStyle,
                               textDecoration: cellStyle?.textDecoration,
-                            color: cellStyle?.color,
+                              color: cellStyle?.color,
                               textAlign: cellStyle?.textAlign,
                               display: 'block',
                             }}
@@ -300,13 +366,33 @@ const SpreadsheetTable: React.FC = React.memo(() => {
         >
           {contextMenu.type === 'row' ? (
             <>
-              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }} onClick={() => handleAddRow(contextMenu.index)}>Добавить строку</div>
-              <div style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }} onClick={() => handleDeleteRow(contextMenu.index)}>Удалить строку {contextMenu.index + 1}</div>
+              <div
+                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}
+                onClick={() => handleAddRow(contextMenu.index)}
+              >
+                Добавить строку
+              </div>
+              <div
+                style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }}
+                onClick={() => handleDeleteRow(contextMenu.index)}
+              >
+                Удалить строку {contextMenu.index + 1}
+              </div>
             </>
           ) : (
             <>
-              <div style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }} onClick={() => handleAddColumn(contextMenu.index)}>Добавить столбец</div>
-              <div style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }} onClick={() => handleDeleteColumn(contextMenu.index)}>Удалить столбец {String.fromCharCode(65 + contextMenu.index)}</div>
+              <div
+                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}
+                onClick={() => handleAddColumn(contextMenu.index)}
+              >
+                Добавить столбец
+              </div>
+              <div
+                style={{ padding: '8px 12px', cursor: 'pointer', color: '#d32f2f' }}
+                onClick={() => handleDeleteColumn(contextMenu.index)}
+              >
+                Удалить столбец {String.fromCharCode(65 + contextMenu.index)}
+              </div>
             </>
           )}
         </div>
@@ -333,55 +419,73 @@ export default function SpreadsheetPage() {
   const hasUnsavedChanges = useAppSelector((s) => s.ui.hasUnsavedChanges);
   const isLoading = useAppSelector((s) => s.ui.isLoading);
 
-  const globalDoc = useMemo(() => allDocuments.find((d: DocumentItem) => d.id === documentId), [allDocuments, documentId]);
-  const currentDoc = useMemo(() => globalDoc?.userId === user?.id ? globalDoc : undefined, [globalDoc, user?.id]);
+  const globalDoc = useMemo(
+    () => allDocuments.find((d: DocumentItem) => d.id === documentId),
+    [allDocuments, documentId]
+  );
+  const currentDoc = useMemo(() => (globalDoc?.userId === user?.id ? globalDoc : undefined), [globalDoc, user?.id]);
   const rows = currentDoc?.rows ?? 0;
   const cols = currentDoc?.cols ?? 0;
 
   const activeCellStyle = activeCellId ? cellStyles[activeCellId] : {};
-  const clipboardRef = useRef<{ cells: string[]; data: Record<string, string>; styles: Record<string, CellStyle>; sourceRows: number; sourceCols: number } | null>(null);
+  const clipboardRef = useRef<{
+    cells: string[];
+    data: Record<string, string>;
+    styles: Record<string, CellStyle>;
+    sourceRows: number;
+    sourceCols: number;
+  } | null>(null);
 
-  const navigateWithConfirm = useCallback((to: string) => {
-    if (hasUnsavedChanges) {
-      if (window.confirm('У вас есть несохранённые изменения. Покинуть страницу?')) {
+  const navigateWithConfirm = useCallback(
+    (to: string) => {
+      if (hasUnsavedChanges) {
+        if (window.confirm('У вас есть несохранённые изменения. Покинуть страницу?')) {
+          navigate(to);
+        }
+      } else {
         navigate(to);
       }
-    } else {
-      navigate(to);
-    }
-  }, [hasUnsavedChanges, navigate]);
+    },
+    [hasUnsavedChanges, navigate]
+  );
 
-  const applyFormatting = useCallback((styleProps: Partial<CellStyle>) => {
-    if (!activeCellId) return;
-    if (selectedRange && (selectedRange.start.row !== selectedRange.end.row || selectedRange.start.col !== selectedRange.end.col)) {
-      const cells: string[] = [];
-      const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
-      const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
-      const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
-      const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
-      for (let r = minRow; r <= maxRow; r++) {
-        for (let c = minCol; c <= maxCol; c++) {
-          const cellId = `${alphabet[c]}${r + 1}`;
-          cells.push(cellId);
+  const applyFormatting = useCallback(
+    (styleProps: Partial<CellStyle>) => {
+      if (!activeCellId) return;
+      if (
+        selectedRange &&
+        (selectedRange.start.row !== selectedRange.end.row || selectedRange.start.col !== selectedRange.end.col)
+      ) {
+        const cells: string[] = [];
+        const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
+        const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
+        const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
+        const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
+        for (let r = minRow; r <= maxRow; r++) {
+          for (let c = minCol; c <= maxCol; c++) {
+            const cellId = `${alphabet[c]}${r + 1}`;
+            cells.push(cellId);
+          }
         }
+        dispatch(setRangeStyle({ cells, style: styleProps }));
+      } else if (activeCellId) {
+        dispatch(setCellStyle({ cellId: activeCellId, style: styleProps }));
       }
-      dispatch(setRangeStyle({ cells, style: styleProps }));
-    } else if (activeCellId) {
-      dispatch(setCellStyle({ cellId: activeCellId, style: styleProps }));
-    }
-  }, [activeCellId, selectedRange, dispatch]);
+    },
+    [activeCellId, selectedRange, dispatch]
+  );
 
   const handleCopy = useCallback(() => {
     if (!selectedRange) return;
     const cells: string[] = [];
     const data: Record<string, string> = {};
     const styles: Record<string, CellStyle> = {};
-    
+
     const minRow = Math.min(selectedRange.start.row, selectedRange.end.row);
     const maxRow = Math.max(selectedRange.start.row, selectedRange.end.row);
     const minCol = Math.min(selectedRange.start.col, selectedRange.end.col);
     const maxCol = Math.max(selectedRange.start.col, selectedRange.end.col);
-    
+
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const cellId = `${alphabet[c]}${r + 1}`;
@@ -390,11 +494,11 @@ export default function SpreadsheetPage() {
         if (cellStyles[cellId]) styles[cellId] = cellStyles[cellId];
       }
     }
-    
+
     const sourceRows = maxRow - minRow + 1;
     const sourceCols = maxCol - minCol + 1;
     clipboardRef.current = { cells, data, styles, sourceRows, sourceCols };
-    const plainText = cells.map(cellId => data[cellId]).join('\t');
+    const plainText = cells.map((cellId) => data[cellId]).join('\t');
     navigator.clipboard?.writeText(plainText);
   }, [selectedRange, matrixData, cellStyles]);
 
@@ -412,7 +516,7 @@ export default function SpreadsheetPage() {
         cellsToClear.push(cellId);
       }
     }
-    cellsToClear.forEach(cellId => {
+    cellsToClear.forEach((cellId) => {
       dispatch(updateCellData({ cellId, entValue: '' }));
       dispatch(setCellStyle({ cellId, style: {} }));
     });
@@ -460,45 +564,59 @@ export default function SpreadsheetPage() {
           cellsToClear.push(`${alphabet[c]}${r + 1}`);
         }
       }
-      cellsToClear.forEach(cellId => dispatch(updateCellData({ cellId, entValue: '' })));
+      cellsToClear.forEach((cellId) => dispatch(updateCellData({ cellId, entValue: '' })));
     } else if (activeCellId) {
       dispatch(updateCellData({ cellId: activeCellId, entValue: '' }));
     }
   }, [selectedRange, activeCellId, dispatch]);
 
-  const handleTabNavigation = useCallback((shift: boolean) => {
-    if (!activeCellId) return;
-    const { row, col } = cellIdToCoords(activeCellId);
-    let newRow = row, newCol = col;
-    if (shift) {
-      if (col > 0) newCol--;
-      else if (row > 0) { newRow--; newCol = cols - 1; }
-    } else {
-      if (col < cols - 1) newCol++;
-      else if (row < rows - 1) { newRow++; newCol = 0; }
-    }
-    const newCellId = `${alphabet[newCol]}${newRow + 1}`;
-    dispatch(setActiveCell(newCellId));
-    dispatch(setSelectedRange({ start: { row: newRow, col: newCol }, end: { row: newRow, col: newCol } }));
-  }, [activeCellId, cols, rows, dispatch]);
-
-  const handleArrowNavigation = useCallback((direction: 'up' | 'down' | 'left' | 'right', shift: boolean) => {
-    if (!activeCellId) return;
-    const { row, col } = cellIdToCoords(activeCellId);
-    let newRow = row, newCol = col;
-    if (direction === 'up' && row > 0) newRow--;
-    if (direction === 'down' && row < rows - 1) newRow++;
-    if (direction === 'left' && col > 0) newCol--;
-    if (direction === 'right' && col < cols - 1) newCol++;
-    const newCellId = `${alphabet[newCol]}${newRow + 1}`;
-    dispatch(setActiveCell(newCellId));
-    
-    if (shift && selectedRange) {
-      dispatch(setSelectedRange({ start: selectedRange.start, end: { row: newRow, col: newCol } }));
-    } else {
+  const handleTabNavigation = useCallback(
+    (shift: boolean) => {
+      if (!activeCellId) return;
+      const { row, col } = cellIdToCoords(activeCellId);
+      let newRow = row,
+        newCol = col;
+      if (shift) {
+        if (col > 0) newCol--;
+        else if (row > 0) {
+          newRow--;
+          newCol = cols - 1;
+        }
+      } else {
+        if (col < cols - 1) newCol++;
+        else if (row < rows - 1) {
+          newRow++;
+          newCol = 0;
+        }
+      }
+      const newCellId = `${alphabet[newCol]}${newRow + 1}`;
+      dispatch(setActiveCell(newCellId));
       dispatch(setSelectedRange({ start: { row: newRow, col: newCol }, end: { row: newRow, col: newCol } }));
-    }
-  }, [activeCellId, cols, rows, dispatch, selectedRange]);
+    },
+    [activeCellId, cols, rows, dispatch]
+  );
+
+  const handleArrowNavigation = useCallback(
+    (direction: 'up' | 'down' | 'left' | 'right', shift: boolean) => {
+      if (!activeCellId) return;
+      const { row, col } = cellIdToCoords(activeCellId);
+      let newRow = row,
+        newCol = col;
+      if (direction === 'up' && row > 0) newRow--;
+      if (direction === 'down' && row < rows - 1) newRow++;
+      if (direction === 'left' && col > 0) newCol--;
+      if (direction === 'right' && col < cols - 1) newCol++;
+      const newCellId = `${alphabet[newCol]}${newRow + 1}`;
+      dispatch(setActiveCell(newCellId));
+
+      if (shift && selectedRange) {
+        dispatch(setSelectedRange({ start: selectedRange.start, end: { row: newRow, col: newCol } }));
+      } else {
+        dispatch(setSelectedRange({ start: { row: newRow, col: newCol }, end: { row: newRow, col: newCol } }));
+      }
+    },
+    [activeCellId, cols, rows, dispatch, selectedRange]
+  );
 
   const handleEnter = useCallback(() => {
     if (!activeCellId) return;
@@ -540,31 +658,95 @@ export default function SpreadsheetPage() {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
         return;
       }
-      if (e.ctrlKey && e.key.toLowerCase() === 'b') { e.preventDefault(); applyFormatting({ fontWeight: activeCellStyle?.fontWeight === 'bold' ? 'normal' : 'bold' }); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'i') { e.preventDefault(); applyFormatting({ fontStyle: activeCellStyle?.fontStyle === 'italic' ? 'normal' : 'italic' }); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'u') { e.preventDefault(); applyFormatting({ textDecoration: activeCellStyle?.textDecoration === 'underline' ? 'none' : 'underline' }); }
-      if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); if (activeDocId) dispatch(saveActiveDocument()); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); dispatch(undo()); }
-      if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); dispatch(redo()); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'c') { e.preventDefault(); handleCopy(); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'x') { e.preventDefault(); handleCut(); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'v') { e.preventDefault(); handlePaste(); }
-      if (e.ctrlKey && e.key.toLowerCase() === 'a') { e.preventDefault(); handleSelectAll(); }
-      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); handleClear(); }
-      if (e.key === 'Tab') { e.preventDefault(); handleTabNavigation(e.shiftKey); }
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEnter(); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); handleArrowNavigation('up', e.shiftKey); }
-      if (e.key === 'ArrowDown') { e.preventDefault(); handleArrowNavigation('down', e.shiftKey); }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); handleArrowNavigation('left', e.shiftKey); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); handleArrowNavigation('right', e.shiftKey); }
-      if (e.key === 'Escape') { 
+      if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        applyFormatting({ fontWeight: activeCellStyle?.fontWeight === 'bold' ? 'normal' : 'bold' });
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        applyFormatting({ fontStyle: activeCellStyle?.fontStyle === 'italic' ? 'normal' : 'italic' });
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        applyFormatting({ textDecoration: activeCellStyle?.textDecoration === 'underline' ? 'none' : 'underline' });
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (activeDocId) dispatch(saveActiveDocument());
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        dispatch(undo());
+      }
+      if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        dispatch(redo());
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleCopy();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        handleCut();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        handlePaste();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        handleSelectAll();
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleClear();
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        handleTabNavigation(e.shiftKey);
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleEnter();
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        handleArrowNavigation('up', e.shiftKey);
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        handleArrowNavigation('down', e.shiftKey);
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleArrowNavigation('left', e.shiftKey);
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleArrowNavigation('right', e.shiftKey);
+      }
+      if (e.key === 'Escape') {
         const input = document.querySelector('.cell-input-field');
         if (input) (input as HTMLElement).blur();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeDocId, activeCellStyle, dispatch, handleCopy, handleCut, handlePaste, handleSelectAll, handleClear, handleTabNavigation, handleEnter, applyFormatting, handleArrowNavigation]);
+  }, [
+    activeDocId,
+    activeCellStyle,
+    dispatch,
+    handleCopy,
+    handleCut,
+    handlePaste,
+    handleSelectAll,
+    handleClear,
+    handleTabNavigation,
+    handleEnter,
+    applyFormatting,
+    handleArrowNavigation,
+  ]);
 
   useEffect(() => {
     if (!isLoading && documentId && globalDoc) {
@@ -649,7 +831,14 @@ export default function SpreadsheetPage() {
   if (!currentDoc) return null;
 
   const Breadcrumbs = () => (
-    <div style={{ fontSize: '14px', padding: '8px 16px', background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-color)' }}>
+    <div
+      style={{
+        fontSize: '14px',
+        padding: '8px 16px',
+        background: 'var(--bg-panel)',
+        borderBottom: '1px solid var(--border-color)',
+      }}
+    >
       <span style={{ cursor: 'pointer', color: 'var(--link-color)' }} onClick={() => navigateWithConfirm('/dashboard')}>
         Мои документы
       </span>
@@ -661,22 +850,70 @@ export default function SpreadsheetPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Breadcrumbs />
-      
-      <div className="formatting-toolbar" style={{ display: 'flex', gap: '8px', padding: '8px 16px', borderBottom: '1px solid var(--border-color)', alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg-sidebar)' }}>
-        <button onClick={() => applyFormatting({ fontWeight: activeCellStyle?.fontWeight === 'bold' ? 'normal' : 'bold' })} style={{ fontWeight: 'bold', padding: '4px 8px' }}>B</button>
-        <button onClick={() => applyFormatting({ fontStyle: activeCellStyle?.fontStyle === 'italic' ? 'normal' : 'italic' })} style={{ fontStyle: 'italic', padding: '4px 8px' }}>I</button>
-        <button onClick={() => applyFormatting({ textDecoration: activeCellStyle?.textDecoration === 'underline' ? 'none' : 'underline' })} style={{ textDecoration: 'underline', padding: '4px 8px' }}>U</button>
-        
-        <input type="color" value={activeCellStyle?.backgroundColor || '#ffffff'} onChange={(e) => applyFormatting({ backgroundColor: e.target.value })} title="Цвет фона" style={{ width: '30px', height: '30px' }} />
-        <input type="color" value={activeCellStyle?.color || '#000000'} onChange={(e) => applyFormatting({ color: e.target.value })} title="Цвет текста" style={{ width: '30px', height: '30px' }} />
-        
-        <select value={activeCellStyle?.textAlign || 'left'} onChange={(e) => applyFormatting({ textAlign: e.target.value as CellStyle['textAlign'] })} style={{ padding: '4px' }}>
+
+      <div
+        className="formatting-toolbar"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          padding: '8px 16px',
+          borderBottom: '1px solid var(--border-color)',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          background: 'var(--bg-sidebar)',
+        }}
+      >
+        <button
+          onClick={() => applyFormatting({ fontWeight: activeCellStyle?.fontWeight === 'bold' ? 'normal' : 'bold' })}
+          style={{ fontWeight: 'bold', padding: '4px 8px' }}
+        >
+          B
+        </button>
+        <button
+          onClick={() => applyFormatting({ fontStyle: activeCellStyle?.fontStyle === 'italic' ? 'normal' : 'italic' })}
+          style={{ fontStyle: 'italic', padding: '4px 8px' }}
+        >
+          I
+        </button>
+        <button
+          onClick={() =>
+            applyFormatting({ textDecoration: activeCellStyle?.textDecoration === 'underline' ? 'none' : 'underline' })
+          }
+          style={{ textDecoration: 'underline', padding: '4px 8px' }}
+        >
+          U
+        </button>
+
+        <input
+          type="color"
+          value={activeCellStyle?.backgroundColor || '#ffffff'}
+          onChange={(e) => applyFormatting({ backgroundColor: e.target.value })}
+          title="Цвет фона"
+          style={{ width: '30px', height: '30px' }}
+        />
+        <input
+          type="color"
+          value={activeCellStyle?.color || '#000000'}
+          onChange={(e) => applyFormatting({ color: e.target.value })}
+          title="Цвет текста"
+          style={{ width: '30px', height: '30px' }}
+        />
+
+        <select
+          value={activeCellStyle?.textAlign || 'left'}
+          onChange={(e) => applyFormatting({ textAlign: e.target.value as CellStyle['textAlign'] })}
+          style={{ padding: '4px' }}
+        >
           <option value="left">Влево</option>
           <option value="center">Центр</option>
           <option value="right">Вправо</option>
         </select>
-        
-        <select value={activeCellStyle?.numberFormat || 'general'} onChange={(e) => applyFormatting({ numberFormat: e.target.value as CellStyle['numberFormat'] })} style={{ padding: '4px' }}>
+
+        <select
+          value={activeCellStyle?.numberFormat || 'general'}
+          onChange={(e) => applyFormatting({ numberFormat: e.target.value as CellStyle['numberFormat'] })}
+          style={{ padding: '4px' }}
+        >
           <option value="general">Общий</option>
           <option value="number">Число</option>
           <option value="percent">Процент</option>
@@ -685,7 +922,15 @@ export default function SpreadsheetPage() {
         </select>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '12px', borderBottom: '1px solid var(--border-color)' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 16px',
+          gap: '12px',
+          borderBottom: '1px solid var(--border-color)',
+        }}
+      >
         <button onClick={() => navigateWithConfirm('/dashboard')}>⬅ На главную</button>
         <span style={{ flex: 1, fontWeight: 'bold' }}>{currentDoc.title}</span>
         <div style={{ display: 'flex', gap: '8px' }}>

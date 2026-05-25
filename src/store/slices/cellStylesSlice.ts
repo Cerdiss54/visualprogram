@@ -27,13 +27,13 @@ const cellStylesSlice = createSlice({
     },
     setRangeStyle: (state, action: PayloadAction<{ cells: string[]; style: Partial<CellStyle> }>) => {
       const { cells, style } = action.payload;
-      cells.forEach(cellId => {
+      cells.forEach((cellId) => {
         if (!state[cellId]) state[cellId] = {};
         state[cellId] = { ...state[cellId], ...style };
       });
     },
     clearCellStyles: (state, action: PayloadAction<string[]>) => {
-      action.payload.forEach(cellId => {
+      action.payload.forEach((cellId) => {
         delete state[cellId];
       });
     },

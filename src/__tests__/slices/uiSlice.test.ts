@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import uiReducer, {
-  setScreen,
-  setSaveStatus,
-  setHasUnsavedChanges,
-  setLoading,
-} from '@/store/slices/uiSlice';
+import uiReducer, { setScreen, setSaveStatus, setHasUnsavedChanges, setLoading } from '@/store/slices/uiSlice';
 
 describe('ui slice', () => {
   it('setScreen changes screen', () => {

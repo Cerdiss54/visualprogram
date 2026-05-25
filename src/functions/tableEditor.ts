@@ -22,7 +22,7 @@ export const addRow = (
     if (match) {
       const col = match[1];
       const row = parseInt(match[2], 10);
-      
+
       if (row >= rowIndex) {
         const newId = `${col}${row + 1}`;
         newData[newId] = { ...cell, id: newId };
@@ -42,11 +42,7 @@ export const addRow = (
   return newData;
 };
 
-export const deleteRow = (
-  data: SpreadsheetData,
-  rowIndex: number,
-  alphabet: string[]
-): SpreadsheetData => {
+export const deleteRow = (data: SpreadsheetData, rowIndex: number, alphabet: string[]): SpreadsheetData => {
   const newData: SpreadsheetData = {};
 
   Object.entries(data).forEach(([cellId, cell]) => {
@@ -54,7 +50,7 @@ export const deleteRow = (
     if (match) {
       const col = match[1];
       const row = parseInt(match[2], 10);
-      
+
       if (row < rowIndex) {
         newData[cellId] = { ...cell };
       } else if (row > rowIndex) {
@@ -81,7 +77,7 @@ export const addColumn = (
       const col = match[1];
       const colIdx = alphabet.indexOf(col);
       const row = parseInt(match[2], 10);
-      
+
       if (colIdx >= colIndex) {
         const newId = `${alphabet[colIdx + 1]}${row}`;
         newData[newId] = { ...cell, id: newId };
@@ -101,11 +97,7 @@ export const addColumn = (
   return newData;
 };
 
-export const deleteColumn = (
-  data: SpreadsheetData,
-  colIndex: number,
-  alphabet: string[]
-): SpreadsheetData => {
+export const deleteColumn = (data: SpreadsheetData, colIndex: number, alphabet: string[]): SpreadsheetData => {
   const newData: SpreadsheetData = {};
   const deleteLetter = alphabet[colIndex];
 
@@ -115,9 +107,9 @@ export const deleteColumn = (
       const col = match[1];
       const colIdx = alphabet.indexOf(col);
       const row = parseInt(match[2], 10);
-      
+
       if (col === deleteLetter) return;
-      
+
       if (colIdx > colIndex) {
         const newId = `${alphabet[colIdx - 1]}${row}`;
         newData[newId] = { ...cell, id: newId };
@@ -139,35 +131,43 @@ export const useTableEditor = (
 ) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
-  const handleAddRow = useCallback((rowIndex: number) => {
-    const newData = addRow(matrixData, rowIndex + 1, totalCols, alphabet);
-    setMatrixData(newData);
-    setContextMenu(null);
-  }, [matrixData, setMatrixData, totalCols, alphabet]);
+  const handleAddRow = useCallback(
+    (rowIndex: number) => {
+      const newData = addRow(matrixData, rowIndex + 1, totalCols, alphabet);
+      setMatrixData(newData);
+      setContextMenu(null);
+    },
+    [matrixData, setMatrixData, totalCols, alphabet]
+  );
 
-  const handleDeleteRow = useCallback((rowIndex: number) => {
-    const newData = deleteRow(matrixData, rowIndex + 1, alphabet);
-    setMatrixData(newData);
-    setContextMenu(null);
-  }, [matrixData, setMatrixData, alphabet]);
+  const handleDeleteRow = useCallback(
+    (rowIndex: number) => {
+      const newData = deleteRow(matrixData, rowIndex + 1, alphabet);
+      setMatrixData(newData);
+      setContextMenu(null);
+    },
+    [matrixData, setMatrixData, alphabet]
+  );
 
-  const handleAddColumn = useCallback((colIndex: number) => {
-    const newData = addColumn(matrixData, colIndex, totalRows, alphabet);
-    setMatrixData(newData);
-    setContextMenu(null);
-  }, [matrixData, setMatrixData, totalRows, alphabet]);
+  const handleAddColumn = useCallback(
+    (colIndex: number) => {
+      const newData = addColumn(matrixData, colIndex, totalRows, alphabet);
+      setMatrixData(newData);
+      setContextMenu(null);
+    },
+    [matrixData, setMatrixData, totalRows, alphabet]
+  );
 
-  const handleDeleteColumn = useCallback((colIndex: number) => {
-    const newData = deleteColumn(matrixData, colIndex, alphabet);
-    setMatrixData(newData);
-    setContextMenu(null);
-  }, [matrixData, setMatrixData, alphabet]);
+  const handleDeleteColumn = useCallback(
+    (colIndex: number) => {
+      const newData = deleteColumn(matrixData, colIndex, alphabet);
+      setMatrixData(newData);
+      setContextMenu(null);
+    },
+    [matrixData, setMatrixData, alphabet]
+  );
 
-  const openContextMenu = useCallback((
-    e: React.MouseEvent,
-    type: 'row' | 'column',
-    index: number
-  ) => {
+  const openContextMenu = useCallback((e: React.MouseEvent, type: 'row' | 'column', index: number) => {
     e.preventDefault();
     setContextMenu({ visible: true, x: e.clientX, y: e.clientY, type, index });
   }, []);

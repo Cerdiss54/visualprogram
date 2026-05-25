@@ -51,75 +51,61 @@ export const renameDocument = createAsyncThunk(
   }
 );
 
-export const duplicateDocument = createAsyncThunk(
-  'documents/duplicate',
-  async (id: string, { getState }) => {
-    const state = getState() as { documents: DocumentsState };
-    const original = state.documents.list.find((d: DocumentItem) => d.id === id);
-    if (!original) throw new Error('Document not found');
-    const newDoc: DocumentItem = {
-      id: Date.now().toString(),
-      title: `Копия ${original.title}`,
-      userId: original.userId,
-      rows: original.rows,
-      cols: original.cols,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      matrixData: JSON.parse(JSON.stringify(original.matrixData)),
-    };
-    return newDoc;
+export const duplicateDocument = createAsyncThunk('documents/duplicate', async (id: string, { getState }) => {
+  const state = getState() as { documents: DocumentsState };
+  const original = state.documents.list.find((d: DocumentItem) => d.id === id);
+  if (!original) throw new Error('Document not found');
+  const newDoc: DocumentItem = {
+    id: Date.now().toString(),
+    title: `Копия ${original.title}`,
+    userId: original.userId,
+    rows: original.rows,
+    cols: original.cols,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    matrixData: JSON.parse(JSON.stringify(original.matrixData)),
+  };
+  return newDoc;
+});
+
+export const importDocument = createAsyncThunk('documents/import', async (doc: DocumentItem) => {
+  return {
+    ...doc,
+    id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+});
+
+export const saveActiveDocument = createAsyncThunk('documents/saveActive', async (_, { getState, dispatch }) => {
+  dispatch(setSaveStatus('saving'));
+  await new Promise((res) => setTimeout(res, 500));
+  const state = getState() as { documents: DocumentsState; spreadsheet: { matrixData: any } };
+  const activeDocId = state.documents.activeDocId;
+  const currentMatrix = state.spreadsheet.matrixData;
+  const docList = state.documents.list;
+
+  if (!activeDocId) throw new Error('No active document');
+
+  const updatedList = docList.map((doc: DocumentItem) =>
+    doc.id === activeDocId ? { ...doc, updatedAt: new Date().toISOString(), matrixData: currentMatrix } : doc
+  );
+  localStorage.setItem('spreadsheet_docs', JSON.stringify(updatedList));
+  dispatch(setSaveStatus('saved'));
+  return updatedList;
+});
+
+export const switchDocument = createAsyncThunk('documents/switch', async (docId: string, { getState, dispatch }) => {
+  const state = getState() as { documents: DocumentsState; auth: { user?: { id: string } } };
+  const doc = state.documents.list.find((d: DocumentItem) => d.id === docId);
+  if (!doc) throw new Error('Document not found');
+  if (doc.userId && doc.userId !== state.auth.user?.id) {
+    throw new Error('403');
   }
-);
-
-export const importDocument = createAsyncThunk(
-  'documents/import',
-  async (doc: DocumentItem) => {
-    return {
-      ...doc,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-);
-
-export const saveActiveDocument = createAsyncThunk(
-  'documents/saveActive',
-  async (_, { getState, dispatch }) => {
-    dispatch(setSaveStatus('saving'));
-    await new Promise((res) => setTimeout(res, 500));
-    const state = getState() as { documents: DocumentsState, spreadsheet: { matrixData: any } };
-    const activeDocId = state.documents.activeDocId;
-    const currentMatrix = state.spreadsheet.matrixData;
-    const docList = state.documents.list;
-
-    if (!activeDocId) throw new Error('No active document');
-
-    const updatedList = docList.map((doc: DocumentItem) =>
-      doc.id === activeDocId
-        ? { ...doc, updatedAt: new Date().toISOString(), matrixData: currentMatrix }
-        : doc
-    );
-    localStorage.setItem('spreadsheet_docs', JSON.stringify(updatedList));
-    dispatch(setSaveStatus('saved'));
-    return updatedList;
-  }
-);
-
-export const switchDocument = createAsyncThunk(
-  'documents/switch',
-  async (docId: string, { getState, dispatch }) => {
-    const state = getState() as { documents: DocumentsState, auth: { user?: { id: string } } };
-    const doc = state.documents.list.find((d: DocumentItem) => d.id === docId);
-    if (!doc) throw new Error('Document not found');
-    if (doc.userId && doc.userId !== state.auth.user?.id) {
-      throw new Error('403');
-    }
-    dispatch(setMatrix(doc.matrixData));
-    dispatch(setScreen('spreadsheet'));
-    return docId;
-  }
-);
+  dispatch(setMatrix(doc.matrixData));
+  dispatch(setScreen('spreadsheet'));
+  return docId;
+});
 
 const documentsSlice = createSlice({
   name: 'documents',
