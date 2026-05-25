@@ -109,7 +109,7 @@ const SpreadsheetTable: React.FC = React.memo(() => {
     e.preventDefault();
     setContextMenu({ visible: true, x: e.clientX, y: e.clientY, type, index });
   };
-  const closeContextMenu = () => setContextMenu(null);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleAddRow = (rowIndex: number) => {
     dispatch(addRowThunk({ rowIndex: rowIndex + 1, totalCols: cols, alphabet }));
@@ -139,14 +139,14 @@ const SpreadsheetTable: React.FC = React.memo(() => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCellId, editingCellId, matrixData]);
+  }, [activeCellId, editingCellId, matrixData, startEditing]);
 
   useEffect(() => {
     if (contextMenu) {
       document.addEventListener('click', closeContextMenu);
       return () => document.removeEventListener('click', closeContextMenu);
     }
-  }, [contextMenu]);
+  }, [contextMenu, closeContextMenu]);
 
   useEffect(() => {
     document.body.style.cursor = isResizing ? 'col-resize' : '';
